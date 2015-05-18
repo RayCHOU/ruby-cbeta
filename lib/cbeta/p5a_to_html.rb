@@ -33,12 +33,12 @@ class CBETA::P5aToHTML
 
   # 將 CBETA XML P5a 轉為 HTML
   #
-  # 例如 轉出大正藏第一冊
+  # Example for convert 大正藏第一冊:
   #
   #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
   #   x2h.convert('T01')
   #
-  # 例如 轉出大正藏全部
+  # Example for convert 大正藏全部:
   #
   #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
   #   x2h.convert('T')

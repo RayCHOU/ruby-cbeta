@@ -4,14 +4,14 @@ require 'fileutils'
 #
 # CBETA Basic Markup 格式可由此取得: https://github.com/mahawu/BM_u8
 #
-# example:
+# Example:
 #
 #   bm2t = CBETA::BMToText.new('/temp/cbeta-bm', '/temp/cbeta-text1')
 #   bm2t.convert('T01')  # 執行大正藏第一冊
 class CBETA::BMToText
 
-  # bm_root:: 來源 CBETA Basic Markup 檔案路徑
-  # out_root:: 輸出路徑
+  # @param bm_root [String] 來源 CBETA Basic Markup 檔案路徑
+  # @param out_root [String] 輸出路徑
   def initialize(bm_root, out_root)
     @bm_root = bm_root
     @out_root = out_root

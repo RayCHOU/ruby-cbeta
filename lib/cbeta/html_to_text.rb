@@ -3,7 +3,7 @@ require 'nokogiri'
 
 # 將 CBETA HTML 轉為 純文字(含行首資訊)
 #
-# example:
+# Example:
 #
 #   h2t = CBETA::HTMLToText.new('/temp/cbeta-html', '/temp/cbeta-text')
 #   h2t.convert("T01")  # 轉換大正藏第一冊
@@ -15,7 +15,7 @@ class CBETA::HTMLToText
     @out_root = out_root
   end
 
-  # 例如執行大正藏第一冊：
+  # Example:
   #
   # convert("T01")
   def convert(arg)

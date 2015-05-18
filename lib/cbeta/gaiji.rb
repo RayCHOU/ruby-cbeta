@@ -10,12 +10,12 @@ class CBETA::Gaiji
 
   # 傳入缺字 CB 碼，傳回 hash 缺字資訊
   #
-  # 例如：
+  # Example:
   #
   #   g = Cbeta::Gaiji.new
   #   g["CB01002"]
   #
-  # 回傳：
+  # Return:
   #   {
   #     "zzs": "[得-彳]",
   #     "unicode": "3775",
