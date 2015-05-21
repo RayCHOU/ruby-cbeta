@@ -17,7 +17,7 @@ class CBETA::BMToText
     @out_root = out_root
   end
 
-  # vol:: 要執行的冊號，例如：T01
+  # @param vol [String] 要執行的冊號，例如：T01
   def convert(vol)
     @corpus = vol[0]
     handle_vol(vol)

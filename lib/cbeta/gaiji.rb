@@ -8,10 +8,13 @@ class CBETA::Gaiji
     @gaijis = JSON.parse(File.read(fn))
   end
 
-  # 傳入缺字 CB 碼，傳回 hash 缺字資訊
+  # 傳入，傳回 hash 缺字資訊
   #
-  # Example:
+  # @param cb [String] 缺字 CB 碼
+  # @return [Hash{String => Strin, Array<String>}] 缺字資訊
+  # @return [nil] 如果該 CB 碼在 CBETA 缺字庫中不存在
   #
+  # @example
   #   g = Cbeta::Gaiji.new
   #   g["CB01002"]
   #
@@ -28,8 +31,10 @@ class CBETA::Gaiji
 
   # 傳入缺字 CB 碼，傳回注音 array
   #
-  # 例如：
+  # @param cb [String] 缺字 CB 碼
+  # @return [Array<String>]
   #
+  # @example
   #   g = Cbeta::Gaiji.new
   #   g.zhuyin("CB00023") # return [ "ㄍㄢˇ", "ㄍㄢ", "ㄧㄤˊ", "ㄇㄧˇ", "ㄇㄧㄝ", "ㄒㄧㄤˊ" ]
   def zhuyin(cb)

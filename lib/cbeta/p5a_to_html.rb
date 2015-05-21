@@ -18,8 +18,8 @@ MISSING = '－'
 # 轉檔規則請參考: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_轉_HTML
 class CBETA::P5aToHTML
 
-  # xml_root:: 來源 CBETA XML P5a 路徑
-  # out_root:: 輸出 HTML 路徑
+  # @param xml_root [String] 來源 CBETA XML P5a 路徑
+  # @param out_root [String] 輸出 HTML 路徑
   def initialize(xml_root, out_root)
     @xml_root = xml_root
     @out_root = out_root
@@ -33,15 +33,20 @@ class CBETA::P5aToHTML
 
   # 將 CBETA XML P5a 轉為 HTML
   #
-  # Example for convert 大正藏第一冊:
+  # @example for convert 大正藏第一冊:
   #
   #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
   #   x2h.convert('T01')
   #
-  # Example for convert 大正藏全部:
+  # @example for convert 大正藏全部:
   #
   #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
   #   x2h.convert('T')
+  #
+  # @example for convert 大正藏第五冊至第七冊:
+  #
+  #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
+  #   x2h.convert('T05..T07')
   #
   # T 是大正藏的 ID, CBETA 的藏經 ID 系統請參考: http://www.cbeta.org/format/id.php
   def convert(arg=nil)
@@ -489,7 +494,11 @@ class CBETA::P5aToHTML
     juans.each { |j|
       if j =~ /<juan (\d+)>$/
         juan_no = $1.to_i
-        fn = "#{@sutra_no}_%03d.htm" % juan_no
+        if @sutra_no.match(/^(T05|T06|T07)n0220/)
+          fn = "#{$1}n0220_%03d.htm" % juan_no
+        else
+          fn = "#{@sutra_no}_%03d.htm" % juan_no
+        end
         output_path = File.join(@out_folder, fn)
         fo = File.open(output_path, 'w')
         open = true
@@ -503,7 +512,7 @@ class CBETA::P5aToHTML
 <body>
 <!-- 
   來源 XML CBETA P5a: https://github.com/cbeta-org/xml-p5a.git
-  轉檔程式: Dropbox/DILA-DA/cbeta-html/bin/x2h.rb Version #{Date.today}
+  轉檔程式: https://rubygems.org/gems/cbeta #{Date.today}
   說明文件: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_%E8%BD%89_HTML
 -->
 <div id='body'>
@@ -549,7 +558,7 @@ eos
   end
 
   def handle_vol(vol)
-    puts 'x2h ' + vol
+    puts "handle volumn: #{vol}"
     if vol.start_with? 'T'
       @orig = "【大】"
     else
@@ -568,8 +577,9 @@ eos
   end
 
   def handle_vols(v1, v2)
+    puts "handle volumns: #{v1}..#{v2}"
     @series = v1[0]
-    folder = File.join(IN, @series)
+    folder = File.join(@xml_root, @series)
     Dir.foreach(folder) { |vol|
       next if vol < v1
       next if vol > v2

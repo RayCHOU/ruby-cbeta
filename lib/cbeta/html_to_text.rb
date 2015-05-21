@@ -8,16 +8,16 @@ require 'nokogiri'
 #   h2t = CBETA::HTMLToText.new('/temp/cbeta-html', '/temp/cbeta-text')
 #   h2t.convert("T01")  # 轉換大正藏第一冊
 class CBETA::HTMLToText
-  # html_root:: 來源 HTML 路徑
-  # out_root:: 輸出路徑
+  # @param html_root [String] 來源 HTML 路徑
+  # @param out_root [String] 輸出路徑
   def initialize(html_root, out_root)
     @html_root = html_root
     @out_root = out_root
   end
 
-  # Example:
-  #
-  # convert("T01")
+  # @param arg [String] 要執行轉換的冊數
+  # @example
+  #   convert("T01")
   def convert(arg)
     @dirty = false
     @vol = arg.upcase
