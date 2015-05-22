@@ -116,11 +116,12 @@ class CBETA::P5aToHTML
 
   def handle_cell(e)
     doc = Nokogiri::XML::Document.new
-    cell = doc.create_element('td')
+    cell = doc.create_element('div')
+    cell['class'] = 'bip-table-cell'
     cell['rowspan'] = e['rows'] if e.key? 'rows'
-    cell['colspan'] = e['rows'] if e.key? 'cols'
+    cell['colspan'] = e['cols'] if e.key? 'cols'
     cell.inner_html = traverse(e)
-    cell.to_s
+    cell.to_xml(:encoding => 'UTF-8')
   end
 
   def handle_collection(c)
@@ -479,7 +480,7 @@ class CBETA::P5aToHTML
   end
 
   def handle_row(e)
-    "<tr>" + traverse(e) + "</tr>"
+    "<div class='bip-table-row'>" + traverse(e) + "</div>"
   end
 
   def handle_sg(e)
@@ -572,7 +573,7 @@ eos
   end
 
   def handle_table(e)
-    '<table>' + traverse(e) + "</table>"
+    "<div class='bip-table'>" + traverse(e) + "</div>"
   end
 
   def handle_text(e, mode)
