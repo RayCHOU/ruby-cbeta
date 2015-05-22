@@ -49,10 +49,10 @@ class CBETA::P5aToHTML
   #   x2h.convert('T05..T07')
   #
   # T 是大正藏的 ID, CBETA 的藏經 ID 系統請參考: http://www.cbeta.org/format/id.php
-  def convert(arg=nil)
-    return convert_all if arg.nil?
+  def convert(target=nil)
+    return convert_all if target.nil?
 
-    arg.upcase!
+    arg = target.upcase
     if arg.size == 1
       handle_collection(arg)
     else
@@ -112,6 +112,15 @@ class CBETA::P5aToHTML
     r += "<span class='lineInfo'>#{@lb}</span>"
     r += traverse(e)
     r + '</p>'
+  end
+
+  def handle_cell(e)
+    doc = Nokogiri::XML::Document.new
+    cell = doc.create_element('td')
+    cell['rowspan'] = e['rows'] if e.key? 'rows'
+    cell['colspan'] = e['rows'] if e.key? 'cols'
+    cell.inner_html = traverse(e)
+    cell.to_s
   end
 
   def handle_collection(c)
@@ -301,7 +310,12 @@ class CBETA::P5aToHTML
       r += "</div><!-- end of lg-row -->"
       @lg_row_open = false
     end
-    r + "<span class='lb' \nid='#{line_head}'>#{line_head}</span>"
+    r += "<span class='lb' \nid='#{line_head}'>#{line_head}</span>"
+    unless @next_line_buf.empty?
+      r += @next_line_buf
+      @next_line_buf = ''
+    end
+    r
   end
 
   def handle_lem(e)
@@ -383,6 +397,7 @@ class CBETA::P5aToHTML
     when 'anchor'    then handle_anchor(e)
     when 'app'       then handle_app(e)
     when 'byline'    then handle_byline(e)
+    when 'cell'      then handle_cell(e)
     when 'corr'      then handle_corr(e)
     when 'div'       then handle_div(e)
     when 'figure'    then handle_figure(e)
@@ -403,14 +418,15 @@ class CBETA::P5aToHTML
     when 'p'         then handle_p(e)
     when 'rdg'       then ''
     when 'reg'       then ''
+    when 'row'       then handle_row(e)
     when 'sic'       then ''
     when 'sg'        then handle_sg(e)
     when 't'         then handle_t(e)
+    when 'table'     then handle_table(e)
     else traverse(e)
     end
     r
   end
-
 
   def handle_note(e)
     n = e['n']
@@ -462,12 +478,16 @@ class CBETA::P5aToHTML
     r + '</p>'
   end
 
+  def handle_row(e)
+    "<tr>" + traverse(e) + "</tr>"
+  end
+
   def handle_sg(e)
     '(' + traverse(e) + ')'
   end
 
   def handle_sutra(xml_fn)
-    puts "handle sutra #{xml_fn}"
+    puts "convert sutra #{xml_fn}"
     @back = { 0 => '' }
     @char_count = 1
     @dila_note = 0
@@ -476,6 +496,7 @@ class CBETA::P5aToHTML
     @juan = 0
     @lg_row_open = false
     @mod_notes = Set.new
+    @next_line_buf = ''
     @open_divs = []
     @sutra_no = File.basename(xml_fn, ".xml")
 
@@ -535,7 +556,23 @@ eos
     if e.has_attribute? 'place'
       return '' if e['place'].include? 'foot'
     end
-    traverse(e)
+    r = traverse(e)
+
+    # 處理雙行對照
+    i = e.xpath('../t').index(e)
+    case i
+    when 0
+      return r + '　'
+    when 1
+      @next_line_buf += r + '　'
+      return ''
+    else
+      return r
+    end
+  end
+
+  def handle_table(e)
+    '<table>' + traverse(e) + "</table>"
   end
 
   def handle_text(e, mode)
@@ -558,7 +595,7 @@ eos
   end
 
   def handle_vol(vol)
-    puts "handle volumn: #{vol}"
+    puts "convert volumn: #{vol}"
     if vol.start_with? 'T'
       @orig = "【大】"
     else
@@ -577,7 +614,7 @@ eos
   end
 
   def handle_vols(v1, v2)
-    puts "handle volumns: #{v1}..#{v2}"
+    puts "convert volumns: #{v1}..#{v2}"
     @series = v1[0]
     folder = File.join(@xml_root, @series)
     Dir.foreach(folder) { |vol|

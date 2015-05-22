@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'cbeta'
-  s.version     = '0.0.3'
-  s.date        = '2015-05-21'
+  s.version     = '0.0.4'
+  s.date        = '2015-05-22'
   s.summary     = "CBETA Tools"
   s.description = "Ruby gem for use Chinese Buddhist Text resources made by CBETA (http://www.cbeta.org)."
   s.authors     = ["Ray Chou"]
