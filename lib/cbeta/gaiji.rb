@@ -8,7 +8,7 @@ class CBETA::Gaiji
     @gaijis = JSON.parse(File.read(fn))
   end
 
-  # 傳入，傳回 hash 缺字資訊
+  # 取得缺字資訊
   #
   # @param cb [String] 缺字 CB 碼
   # @return [Hash{String => Strin, Array<String>}] 缺字資訊
@@ -30,6 +30,8 @@ class CBETA::Gaiji
   end
 
   # 傳入缺字 CB 碼，傳回注音 array
+  #
+  # 資料來源：CBETA 於 2015.5.15 提供的 MS Access 缺字資料庫
   #
   # @param cb [String] 缺字 CB 碼
   # @return [Array<String>]

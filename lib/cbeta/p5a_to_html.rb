@@ -11,7 +11,7 @@ PASS=['back', 'teiHeader']
 # 某版用字缺的符號
 MISSING = '－'
 
-# 處理 CBETA XML P5a
+# Convert CBETA XML P5a to HTML
 #
 # CBETA XML P5a 可由此取得: https://github.com/cbeta-git/xml-p5a
 #
@@ -23,6 +23,7 @@ class CBETA::P5aToHTML
   def initialize(xml_root, out_root)
     @xml_root = xml_root
     @out_root = out_root
+    @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
 
     # 載入 unicode 1.1 字集列表
@@ -121,7 +122,7 @@ class CBETA::P5aToHTML
     cell['rowspan'] = e['rows'] if e.key? 'rows'
     cell['colspan'] = e['cols'] if e.key? 'cols'
     cell.inner_html = traverse(e)
-    cell.to_xml(:encoding => 'UTF-8')
+    to_html(cell)
   end
 
   def handle_collection(c)
@@ -288,7 +289,7 @@ class CBETA::P5aToHTML
       end
       @first_l = false
     end
-    r = cell.to_s
+    r = to_html(cell)
     
     unless @lg_row_open
       r = "\n<div class='lg-row'>" + r
@@ -356,7 +357,7 @@ class CBETA::P5aToHTML
         node.inner_html += '</div><!-- end of lg -->'
         @lg_row_open = false
       end
-      r = "\n" + node.to_s
+      r = "\n" + to_html(node)
     end
     r
   end
@@ -597,11 +598,10 @@ eos
 
   def handle_vol(vol)
     puts "convert volumn: #{vol}"
-    if vol.start_with? 'T'
-      @orig = "【大】"
-    else
-      abort "未處理底本"
-    end
+
+    @orig = @cbeta.get_canon_abbr(vol[0])
+    abort "未處理底本" if @orig.nil?
+
     @vol = vol
     @series = vol[0]
     @out_folder = File.join(@out_root, @series, vol)
@@ -698,6 +698,10 @@ eos
 
     text = traverse(body)
     text
+  end
+
+  def to_html(e)
+    e.to_xml(encoding: 'UTF-8', :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
   end
 
   def traverse(e, mode='html')
