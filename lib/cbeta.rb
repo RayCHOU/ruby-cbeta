@@ -6,6 +6,22 @@
 require 'csv'
 
 class CBETA
+
+  # 將行首資訊轉為引用格式
+  #
+  # @param linehead [String] 行首資訊, 例如：T85n2838_p1291a03
+  # @return [String] 引用格式的出處資訊，例如：T85, no. 2838, p. 1291, a03
+  # 
+  # @example
+  #   CBETA.linehead_to_s('T85n2838_p1291a03')
+  #   # return "T85, no. 2838, p. 1291, a03"
+  def self.linehead_to_s(linehead)
+    linehead.match(/^([A-Z]\d+)n(.*)_p(\d+)([a-z]\d+)$/) {
+      return "#{$1}, no. #{$2}, p. #{$3}, #{$4}"
+    }
+    nil
+  end
+
 	# 載入藏經資料
   def initialize()
     fn = File.join(File.dirname(__FILE__), 'canons.csv')
@@ -31,6 +47,7 @@ class CBETA
 		@canon_abbr[id]
 	end
 end
+
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
 require 'cbeta/p5a_to_html'
