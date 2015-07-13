@@ -427,6 +427,7 @@ class CBETA::P5aToHTML
     when 'sic'       then ''
     when 'sg'        then handle_sg(e)
     when 't'         then handle_t(e)
+    when 'tt'        then handle_tt(e)
     when 'table'     then handle_table(e)
     else traverse(e)
     end
@@ -563,6 +564,8 @@ eos
     end
     r = traverse(e)
 
+    return r if @tt_type == 'app'
+
     # 處理雙行對照
     i = e.xpath('../t').index(e)
     case i
@@ -574,6 +577,11 @@ eos
     else
       return r
     end
+  end
+
+  def handle_tt(e)
+    @tt_type = e['type']
+    traverse(e)
   end
 
   def handle_table(e)
