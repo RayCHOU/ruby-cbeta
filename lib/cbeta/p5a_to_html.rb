@@ -300,6 +300,9 @@ class CBETA::P5aToHTML
   end
 
   def handle_lb(e)
+    # 卍續藏有 X 跟 R 兩種 lb, 只處理 X
+    return '' if e['ed'] != @series
+
     @char_count = 1
     @lb = e['n']
     line_head = @sutra_no + '_p' + e['n']
