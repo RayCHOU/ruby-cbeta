@@ -8,13 +8,21 @@ require 'set'
 # Convert CBETA XML P5a to Text
 #
 # CBETA XML P5a 可由此取得: https://github.com/cbeta-git/xml-p5a
+#
+# @example for convert 大正藏第一冊 in app format:
+#
+#   c = CBETA::P5aToText.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER', 'app')
+#   c.convert('T01')
+#
 class CBETA::P5aToText
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param output_root [String] 輸出 Text 路徑
-  def initialize(xml_root, output_root)
+  # @param format [String] 輸出格式，例：'app'
+  def initialize(xml_root, output_root, format=nil)
     @xml_root = xml_root
     @output_root = output_root
+    @format = format
     @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
 
@@ -61,6 +69,42 @@ class CBETA::P5aToText
 
   private
 
+  # 跨行字詞移到下一行
+  def appify(text)
+    r = ''
+    i = 0
+    app = ''
+    text.each_line do |line|
+      line.chomp!
+      if line.match(/^(.*)║(.*)$/)
+        r += $1
+        t = $2
+        r += "(%02d)" % i
+        r += "║#{app}"
+        app = ''
+        i = 0
+        chars = t.chars
+        until chars.empty?
+          c = chars.pop
+          if c == "\t"
+            break
+          elsif ' 　：》」』、；，！？。'.include? c
+            chars << c
+            break
+          elsif '《「『'.include? c  # 這些標點移到下一行
+            app = c + app
+            break
+          else
+            app = c + app
+          end
+        end
+        r += chars.join.gsub(/\t/, '') + "\n"
+        i = app.size
+      end
+    end
+    r
+  end
+
   def convert_all
     Dir.foreach(@xml_root) { |c|
       next unless c.match(/^[A-Z]$/)
@@ -83,11 +127,15 @@ class CBETA::P5aToText
   end
 
   def handle_byline(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format=='app' ? "\t" : "\n"
+    r
   end
 
   def handle_cell(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format=='app' ? "\t" : "\n"
+    r
   end
 
   def handle_collection(c)
@@ -109,11 +157,15 @@ class CBETA::P5aToText
   end
 
   def handle_docNumber(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format == 'app' ? "\t" : "\n"
+    r
   end
 
   def handle_figure(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format == 'app' ? "\t" : "\n"
+    r
   end
 
   def handle_g(e)
@@ -155,27 +207,37 @@ class CBETA::P5aToText
   end
 
   def handle_head(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format == 'app' ? "\t" : "\n"
+    r
   end
 
   def handle_item(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format == 'app' ? "\t" : "\n"
   end
 
   def handle_juan(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format == 'app' ? "\t" : "\n"
+    r
   end
 
   def handle_l(e)
     r = traverse(e)
-    unless @lg_type == 'abnormal'
-      r += "\n"
+    if @format == 'app'
+      r += "\t"
+    else
+      r += "\n" unless @lg_type == 'abnormal'
     end
     r
   end
 
   def handle_lb(e)
     r = ''
+    if @format == 'app'
+      r += "\n#{e['n']}║"
+    end
     unless @next_line_buf.empty?
       r += @next_line_buf + "\n"
       @next_line_buf = ''
@@ -197,7 +259,9 @@ class CBETA::P5aToText
   end
 
   def handle_list(e)
-    "\n" + traverse(e)
+    r = ''
+    r += "\n" unless @format == 'app'
+    r + traverse(e)
   end
 
   def handle_milestone(e)
@@ -247,6 +311,7 @@ class CBETA::P5aToText
     when 'row'       then handle_row(e)
     when 'sic'       then handle_sic(e)
     when 'sg'        then handle_sg(e)
+    when 'tt'        then handle_tt(e)
     when 't'         then handle_t(e)
     when 'table'     then handle_table(e)
     when 'teiHeader' then ''
@@ -264,7 +329,9 @@ class CBETA::P5aToText
   end
 
   def handle_p(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r += @format == 'app' ? "\t" : "\n"
+    r
   end
 
   def handle_rdg(e)
@@ -337,6 +404,9 @@ class CBETA::P5aToText
     end
     r = traverse(e)
 
+    # 不是雙行對照
+    return r if @tt_type == 'app'
+
     # 處理雙行對照
     i = e.xpath('../t').index(e)
     case i
@@ -364,6 +434,11 @@ class CBETA::P5aToText
 
     # 把 & 轉為 &amp;
     CGI.escapeHTML(r)
+  end
+
+  def handle_tt(e)
+    @tt_type = e['type']
+    traverse(e)
   end
 
   def handle_vol(vol)
@@ -427,13 +502,15 @@ class CBETA::P5aToText
           node.remove
         end
       end
+      text = frag.content
+      text = appify(text) if @format == 'app'
 
       folder = File.join(@out_sutra, ed)
       FileUtils.makedirs(folder)
 
       fn = "#{@sutra_no}_%03d.txt" % juan_no
       output_path = File.join(folder, fn)
-      File.write(output_path, frag.content)
+      File.write(output_path, text)
     end
   end
 end

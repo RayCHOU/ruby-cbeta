@@ -6,7 +6,6 @@
 require 'csv'
 
 class CBETA
-
   # 將行首資訊轉為引用格式
   #
   # @param linehead [String] 行首資訊, 例如：T85n2838_p1291a03

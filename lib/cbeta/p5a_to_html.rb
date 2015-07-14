@@ -564,6 +564,7 @@ eos
     end
     r = traverse(e)
 
+    # <tt type="app"> 不是 悉漢雙行對照
     return r if @tt_type == 'app'
 
     # 處理雙行對照
@@ -679,7 +680,7 @@ eos
     end
 
     # <milestone unit="juan"> 前面的 lb 屬於新的這一卷
-    s.gsub!(/((?:<pb [^>]+>\n?)?<lb [^>]+>\n?)(<milestone [^>]*unit="juan"\/>)/, '\2\1')
+    s.gsub!(%r{((?:<pb [^>]+>\n?)?(?:<lb [^>]+>\n?)+)(<milestone [^>]*unit="juan"[^/>]*/>)}, '\2\1')
 
     doc = Nokogiri::XML(s)
     doc.remove_namespaces!()
