@@ -495,6 +495,8 @@ class CBETA::P5aToText
   end
 
   def write_juan(juan_no, txt)
+    folder = File.join(@out_sutra, "%03d" % juan_no)
+    FileUtils.makedirs(folder)
     @editions.each do |ed|
       frag = Nokogiri::XML.fragment(txt)
       frag.search("r").each do |node|
@@ -505,10 +507,7 @@ class CBETA::P5aToText
       text = frag.content
       text = appify(text) if @format == 'app'
 
-      folder = File.join(@out_sutra, ed)
-      FileUtils.makedirs(folder)
-
-      fn = "#{@sutra_no}_%03d.txt" % juan_no
+      fn = "#{ed}.txt"
       output_path = File.join(folder, fn)
       File.write(output_path, text)
     end

@@ -442,16 +442,11 @@ class CBETA::P5aToHTML
       when 'equivalent'
         return ''
       when 'orig'
-        @pass << false
-        s = traverse(e)
-        @pass.pop
-        @back[@juan] += "<span class='footnote_orig' id='n#{n}'>#{s}</span>\n"
-
-        if @mod_notes.include? n
-          return ''
-        else
-          return "<a class='noteAnchor' href='#n#{n}'></a>"
-        end
+        return handle_note_orig(e)
+      when 'orig_biao'
+        return handle_note_orig(e, 'biao')
+      when 'orig_ke'
+        return handle_note_orig(e, 'ke')
       when 'mod'
         @pass << false
         s = traverse(e)
@@ -474,6 +469,25 @@ class CBETA::P5aToHTML
       return "<span class='doube-line-note'>#{r}</span>"
     else
       return traverse(e)
+    end
+  end
+
+  def handle_note_orig(e, anchor_type=nil)
+    n = e['n']
+    @pass << false
+    s = traverse(e)
+    @pass.pop
+    @back[@juan] += "<span class='footnote_orig' id='n#{n}'>#{s}</span>\n"
+
+    if @mod_notes.include? n
+      return ''
+    else
+      label = case anchor_type
+      when 'biao' then " data-label='標#{n[-2..-1]}'"
+      when 'ke'   then " data-label='科#{n[-2..-1]}'"
+      else ''
+      end
+      return "<a class='noteAnchor' href='#n#{n}'#{label}></a>"
     end
   end
 
