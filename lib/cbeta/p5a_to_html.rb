@@ -254,7 +254,8 @@ class CBETA::P5aToHTML
   def handle_head(e)
     r = ''
     unless e['type'] == 'added'
-      r = "<p class='head'>%s</p>" % traverse(e)
+      i = @open_divs.size
+      r = "<p class='head' data-head-level='#{i}'>%s</p>" % traverse(e)
     end
     r
   end
