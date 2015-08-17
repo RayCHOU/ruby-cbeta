@@ -50,5 +50,6 @@ end
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
 require 'cbeta/p5a_to_html'
+require 'cbeta/p5a_to_simple_html'
 require 'cbeta/p5a_to_text'
 require 'cbeta/html_to_text'
