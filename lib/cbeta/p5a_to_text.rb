@@ -169,7 +169,9 @@ class CBETA::P5aToText
   end
 
   def handle_g(e)
-    # if 有 <mapping type="unicode">
+    # if 悉曇字、蘭札體
+    #   使用 Unicode PUA
+    # else if 有 <mapping type="unicode">
     #   直接採用
     # else if 有 <mapping type="normal_unicode">
     #   採用 normal_unicode
@@ -182,18 +184,23 @@ class CBETA::P5aToText
     abort "Line:#{__LINE__} 無缺字資料:#{gid}" if g.nil?
     zzs = g['zzs']
     
-    if gid.start_with?('SD')
+    if gid.start_with?('SD') # 悉曇字
       case gid
       when 'SD-E35A'
         return '（'
       when 'SD-E35B'
         return '）'
       else
-        return g['roman']
+        i = 0xFA000 + gid[-4..-1].to_i(16)
+        return [i].pack("U")
       end
     end
     
-    return g['roman'] if gid.start_with?('RJ')
+    if gid.start_with?('RJ') # 蘭札體
+      i = 0x10000 + gid[-4..-1].to_i(16)
+      return [i].pack("U")
+    end
+    
     return g['unicode-char'] if g.has_key?('unicode')
     return g['normal_unicode'] if g.has_key?('normal_unicode')
     return g['normal'] if g.has_key?('normal')
@@ -489,6 +496,7 @@ class CBETA::P5aToText
     r = ''
     e.children.each { |c| 
       s = handle_node(c)
+      puts "handle_node return nil, node: " + c.to_s if s.nil?
       r += s
     }
     r
