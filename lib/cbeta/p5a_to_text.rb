@@ -191,14 +191,12 @@ class CBETA::P5aToText
       when 'SD-E35B'
         return '）'
       else
-        i = 0xFA000 + gid[-4..-1].to_i(16)
-        return [i].pack("U")
+        return CBETA.siddham_pua(gid)
       end
     end
     
-    if gid.start_with?('RJ') # 蘭札體
-      i = 0x10000 + gid[-4..-1].to_i(16)
-      return [i].pack("U")
+    if gid.start_with?('RJ') # 蘭札體      
+      return CBETA.ranjana_pua(gid)
     end
     
     return g['unicode-char'] if g.has_key?('unicode')

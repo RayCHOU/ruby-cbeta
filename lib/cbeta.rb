@@ -20,6 +20,18 @@ class CBETA
     }
     nil
   end
+  
+  # 傳入 蘭札體 缺字碼，傳回 Unicode PUA 字元
+  def self.ranjana_pua(gid)
+    i = 0x10000 + gid[-4..-1].hex
+    [i].pack("U")
+  end
+  
+  # 傳入 悉曇字 缺字碼，傳回 Unicode PUA 字元
+  def self.siddham_pua(gid)
+    i = 0xFA000 + gid[-4..-1].hex
+    [i].pack("U")
+  end
 
 	# 載入藏經資料
   def initialize()

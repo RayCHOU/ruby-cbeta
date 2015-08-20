@@ -27,9 +27,9 @@ class CBETA::P5aToHTML
     @gaijis = CBETA::Gaiji.new
 
     # 載入 unicode 1.1 字集列表
-    fn = File.join(File.dirname(__FILE__), 'unicode-1.1.json')
-    json = File.read(fn)
-    @unicode1 = JSON.parse(json)
+    #fn = File.join(File.dirname(__FILE__), 'unicode-1.1.json')
+    #json = File.read(fn)
+    #@unicode1 = JSON.parse(json)
   end
 
   # 將 CBETA XML P5a 轉為 HTML
@@ -175,7 +175,7 @@ class CBETA::P5aToHTML
 
   def handle_g(e, mode)
     # if 有 <mapping type="unicode">
-    #   if 在 unicode 1.1 範圍裡
+    #   if 不在 Unicode Extension C, D, E 範圍裡
     #     直接採用
     #   else
     #     預設呈現 unicode, 但仍包缺字資訊，供點選開 popup
@@ -218,10 +218,12 @@ class CBETA::P5aToHTML
    
     default = ''
     if g.has_key?('unicode')
-      if @unicode1.include?(g['unicode'])
-        return g['unicode-char'] # unicode 1.1 直接用
-      else
+      #if @unicode1.include?(g['unicode'])
+      # 如果在 unicode ext-C, ext-D, ext-E 範圍內
+      if (0x2A700..0x2CEAF).include? g['unicode'].hex
         default = g['unicode-char']
+      else
+        return g['unicode-char'] # 直接採用 unicode
       end
     end
 
