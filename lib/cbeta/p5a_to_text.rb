@@ -25,11 +25,6 @@ class CBETA::P5aToText
     @format = format
     @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
-
-    # 載入 unicode 1.1 字集列表
-    fn = File.join(File.dirname(__FILE__), 'unicode-1.1.json')
-    json = File.read(fn)
-    @unicode1 = JSON.parse(json)
   end
 
   # 將 CBETA XML P5a 轉為 Text

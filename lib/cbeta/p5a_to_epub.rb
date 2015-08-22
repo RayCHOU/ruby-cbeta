@@ -4,72 +4,181 @@ require 'fileutils'
 require 'json'
 require 'nokogiri'
 require 'set'
+require 'gepub'
+require 'pp'
 
-# Convert CBETA XML P5a to HTML
+# Convert CBETA XML P5a to EPUB
 #
 # CBETA XML P5a 可由此取得: https://github.com/cbeta-git/xml-p5a
-#
-# 轉檔規則請參考: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_轉_HTML
-class CBETA::P5aToHTML
+class CBETA::P5aToEPUB
   # 內容不輸出的元素
   PASS=['back', 'teiHeader']
 
   # 某版用字缺的符號
   MISSING = '－'
+  
+  NAV_TEMPLATE = File.read(File.join(File.dirname(__FILE__), '../data/epub-nav.xhtml'))
+  MAIN = 'main.xhtml'  
 
-  # @param xml_root [String] 來源 CBETA XML P5a 路徑
-  # @param out_root [String] 輸出 HTML 路徑
-  def initialize(xml_root, out_root)
-    @xml_root = xml_root
-    @out_root = out_root
+  # @param temp_folder [String] 供 EPUB 暫存工作檔案的路徑
+  # @param graphic_base [String] 存放圖片的路徑
+  def initialize(temp_folder, graphic_base)
+    @temp_folder = temp_folder
+    @graphic_base = graphic_base
     @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
   end
 
-  # 將 CBETA XML P5a 轉為 HTML
-  #
-  # @example for convert 大正藏第一冊:
-  #
-  #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
-  #   x2h.convert('T01')
-  #
-  # @example for convert 大正藏全部:
-  #
-  #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
-  #   x2h.convert('T')
-  #
-  # @example for convert 大正藏第五冊至第七冊:
-  #
-  #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
-  #   x2h.convert('T05..T07')
-  #
-  # T 是大正藏的 ID, CBETA 的藏經 ID 系統請參考: http://www.cbeta.org/format/id.php
-  def convert(target=nil)
-    return convert_all if target.nil?
+  # 將某個 xml 轉為一個 EPUB
+  def convert_file(input_path, output_path)
+    return false unless input_path.end_with? '.xml'
+    
+    FileUtils.remove_dir(@temp_folder, force=true)
+    FileUtils::mkdir_p @temp_folder
+    
+    @book_id = File.basename(input_path, ".xml")
+    
+    sutra_init
+    
+    handle_file(input_path)
+    create_epub(output_path)
+  end
 
-    arg = target.upcase
-    if arg.size == 1
-      handle_collection(arg)
-    else
-      if arg.include? '..'
-        arg.match(/^([^\.]+?)\.\.([^\.]+)$/) {
-          handle_vols($1, $2)
-        }
+  # 將某個資料夾下的每個 xml 檔都轉為一個對應的 EPUB。
+  # 資料夾可以是巢狀，全部都會遞迴處理。
+  #
+  # @example
+  #   require 'cbeta'
+  #   
+  #   TEMP = '/temp/epub-work'
+  #   IMG = '/Users/ray/Documents/Projects/D道安/figures'
+  #   
+  #   c = CBETA::P5aToEPUB.new(TEMP, IMG)
+  #   c.convert_folder('/Users/ray/Documents/Projects/D道安/xml-p5a/DA', '/temp/cbeta-epub/DA')
+  def convert_folder(input_folder, output_folder)
+    FileUtils.remove_dir(output_folder, force=true)
+    FileUtils::mkdir_p output_folder
+    Dir.foreach(input_folder) do |f|
+      next if f.start_with? '.'
+      p1 = File.join(input_folder, f)
+      if File.file?(p1)
+        f.sub!(/.xml$/, '.epub')
+        p2 = File.join(output_folder, f)
+        convert_file(p1, p2)
       else
-        handle_vol(arg)
+        p2 = File.join(output_folder, f)
+        convert_folder(p1, p2)
       end
     end
   end
-
-  private
-
-  def convert_all
-    Dir.foreach(@xml_root) { |c|
-      next unless c.match(/^[A-Z]$/)
-      handle_collection(c)
-    }
+  
+  # 將多個 xml 檔案合成一個 EPUB
+  #
+  # @example 大般若經 跨三冊 合成一個 EPUB
+  #   require 'cbeta'
+  #   
+  #   TEMP = '/temp/epub-work'
+  #   
+  #   xml_files = [
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/05/T05n0220a.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/06/T06n0220b.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220c.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220d.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220e.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220f.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220g.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220h.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220i.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220j.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220k.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220l.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220m.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220n.xml',
+  #     '/Users/ray/git-repos/cbeta-xml-p5a/T/07/T07n0220o.xml',
+  #   ]
+  #   
+  #   c = CBETA::P5aToEPUB.new(TEMP)
+  #   c.convert_sutra('T0220', '大般若經', xml_files, '/temp/cbeta-epub/T0220.epub')
+  def convert_sutra(book_id, title, xml_files, out)
+    @book_id = book_id
+    sutra_init
+    xml_files.each { |f| handle_file(f) }
+    
+    @title = title
+    create_epub(out)
   end
 
+  private
+  
+  def copy_static_files(src, dest)
+    p1 = File.join(File.dirname(__FILE__), '../data', src)
+    p2 = File.join(@temp_folder, dest)
+    FileUtils.copy(p1, p2)
+  end
+  
+  def create_epub(output_path)
+    copy_static_files('epub-readme.xhtml', 'readme.xhtml')
+    copy_static_files('epub-donate.xhtml', 'donate.xhtml')
+    create_main_html
+    create_nav_html
+    
+    title = @title
+    book_id = @book_id
+    builder = GEPUB::Builder.new {
+      language 'zh-TW'
+      unique_identifier "http://www.cbeta.org/#{book_id}", 'BookID', 'URL'
+      title title
+
+      creator 'CBETA'
+
+      contributors 'DILA'
+
+      date Date.today.to_s
+    }
+
+    # in resources block, you can define resources by its relative path and datasource.
+    # item creator methods are: files, file.
+    builder.resources(:workdir => @temp_folder) {
+      glob 'img/*'
+      
+      # this is navigation document.
+      nav 'nav.xhtml'
+      
+      # ordered item. will be added to spine.
+      ordered {
+        file 'readme.xhtml'
+        file 'main.xhtml'
+        file 'donate.xhtml'
+      }
+    }
+    builder.generate_epub(output_path)
+    puts "output: #{output_path}"
+  end
+
+  def create_main_html
+    fn = File.join(@temp_folder, MAIN)
+    s = <<eos
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8" />
+  <title>#{@title}</title>
+</head>
+<body>
+<div id='body'>
+eos
+    s += @main_text + "\n</div><!-- end of div[@id='body'] -->\n"
+    s += "<div id='back'>\n" + @back + "</div></body></html>\n"
+    File.write(fn, s)
+  end
+  
+  def create_nav_html
+    @nav_root_ol.add_child("<li><a href='donate.xhtml'>贊助資訊</a></li>")
+    
+    fn = File.join(@temp_folder, 'nav.xhtml')
+    s = NAV_TEMPLATE % to_html(@nav_root_ol)
+    File.write(fn, s)
+  end
+  
   def handle_anchor(e)
     id = e['id']
     if e.has_attribute?('id')
@@ -77,7 +186,7 @@ class CBETA::P5aToHTML
         note = @notes[id]
         note_text = traverse(note)
         n = id[/^nkr_note_orig_(.*)$/, 1]
-        @back[@juan] += "<span class='footnote' id='n#{n}'>#{note_text}</span>\n"
+        @back += "<span class='footnote' id='n#{n}'>#{note_text}</span>\n"
         return "<a class='noteAnchor' href='#n#{n}'></a>"
       elsif id.start_with? 'fx'
         return "<span class='star'>[＊]</span>"
@@ -111,22 +220,11 @@ class CBETA::P5aToHTML
 
   def handle_cell(e)
     doc = Nokogiri::XML::Document.new
-    cell = doc.create_element('div')
-    cell['class'] = 'bip-table-cell'
+    cell = doc.create_element('td')
     cell['rowspan'] = e['rows'] if e.key? 'rows'
     cell['colspan'] = e['cols'] if e.key? 'cols'
     cell.inner_html = traverse(e)
-    to_html(cell)
-  end
-
-  def handle_collection(c)
-    @series = c
-    puts 'handle_collection ' + c
-    folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if ['.', '..', '.DS_Store'].include? vol
-      handle_vol(vol)
-    }
+    to_html(cell) + "\n"
   end
 
   def handle_corr(e)
@@ -144,27 +242,25 @@ class CBETA::P5aToHTML
         else
           note += sic_text
         end
-        @back[@juan] += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
+        @back += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
       end
     end
     r + "<span class='cbeta'>%s</span>" % traverse(e)
   end
 
   def handle_div(e)
-    @div_count += 1
-    n = @div_count
     if e.has_attribute? 'type'
       @open_divs << e
       r = traverse(e)
       @open_divs.pop
-      return "<!-- begin div#{n}--><div class='div-#{e['type']}'>#{r}</div><!-- end of div#{n} -->"
+      return "<div class='div-#{e['type']}'>#{r}</div>"
     else
       return traverse(e)
     end
   end
 
   def handle_figure(e)
-    "<p class='figure'>%s</p>" % traverse(e)
+    "<div class='figure'>%s</div>" % traverse(e)
   end
 
   def handle_g(e, mode)
@@ -192,8 +288,6 @@ class CBETA::P5aToHTML
         return zzs
       end
     end
-
-    @char_count += 1
 
     if gid.start_with?('SD')
       case gid
@@ -236,15 +330,22 @@ class CBETA::P5aToHTML
     default = zzs if default.empty?
     
     href = 'http://dict.cbeta.org/dict_word/gaiji-cb/%s/%s.gif' % [gid[2, 2], gid]
-    unless @back[@juan].include?(href)
-      @back[@juan] += "<span id='#{gid}' class='gaijiInfo' figure_url='#{href}' zzs='#{zzs}' nor='#{nor}'>#{default}</span>\n"
+    unless @back.include?(href)
+      @back += "<span id='#{gid}' class='gaijiInfo' figure_url='#{href}' zzs='#{zzs}' nor='#{nor}'>#{default}</span>\n"
     end
     "<a class='gaijiAnchor' href='##{gid}'>#{default}</a>"
   end
 
   def handle_graphic(e)
-    url = File.basename(e['url'])
-    "<span imgsrc='#{url}' class='graphic'></span>"
+    url = e['url']
+    url.sub!(/^.*figures\/(.*)$/, '\1')
+    
+    src = File.join(@graphic_base, url)
+    basename = File.basename(src)
+    dest = File.join(@temp_folder, 'img', basename)
+    FileUtils.copy(src, dest)
+    
+    "<img src='img/#{basename}' />"
   end
 
   def handle_head(e)
@@ -300,9 +401,7 @@ class CBETA::P5aToHTML
     # 卍續藏有 X 跟 R 兩種 lb, 只處理 X
     return '' if e['ed'] != @series
 
-    @char_count = 1
     @lb = e['n']
-    line_head = @sutra_no + '_p' + e['n']
     r = ''
     #if e.parent.name == 'lg' and $lg_row_open
     if @lg_row_open && !@in_l
@@ -312,7 +411,6 @@ class CBETA::P5aToHTML
       r += "</div><!-- end of lg-row -->"
       @lg_row_open = false
     end
-    r += "<span class='lb' \nid='#{line_head}'>#{line_head}</span>"
     unless @next_line_buf.empty?
       r += @next_line_buf
       @next_line_buf = ''
@@ -330,7 +428,7 @@ class CBETA::P5aToHTML
 
       note = lem_note_cf(e)
       note += lem_note_rdg(e)
-      @back[@juan] += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
+      @back += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
     else
       r = traverse(e)
     end
@@ -367,28 +465,23 @@ class CBETA::P5aToHTML
   end
 
   def handle_milestone(e)
-    r = ''
-    if e['unit'] == 'juan'
-
-      r += "</div>" * @open_divs.size  # 如果有 div 跨卷，要先結束, ex: T55n2154, p. 680a29, 跨 19, 20 兩卷
-      @juan = e['n'].to_i
-      @back[@juan] = @back[0]
-      r += "<juan #{@juan}>"
-      @open_divs.each { |d|
-        r += "<div class='#{d['type']}'>"
-      }
-    end
-    r
+    ''
   end
 
   def handle_mulu(e)
-    r = ''
-    if e['type'] == '品'
-      @pass << false
-      r = "<mulu class='pin' s='%s'/>" % traverse(e, 'txt')
-      @pass.pop
+    return '' if e['type'] == '卷'
+    
+    level = e['level'].to_i
+    while @current_nav.size > level
+      @current_nav.pop
     end
-    r
+    
+    label = traverse(e, 'txt')
+    @mulu_count += 1
+    li = @current_nav.last.add_child("<li><a href='#{@main_html}#mulu#{@mulu_count}'>#{label}</a></li>").first
+    ol = li.add_child('<ol></ol>').first
+    @current_nav << ol
+    "<a id='mulu#{@mulu_count}' />"
   end
 
   def handle_node(e, mode)
@@ -448,7 +541,7 @@ class CBETA::P5aToHTML
         @pass << false
         s = traverse(e)
         @pass.pop
-        @back[@juan] += "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
+        @back += "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
         return "<a class='noteAnchor' href='#n#{n}'></a>"
       when 'rest'
         return ''
@@ -474,7 +567,7 @@ class CBETA::P5aToHTML
     @pass << false
     s = traverse(e)
     @pass.pop
-    @back[@juan] += "<span class='footnote_orig' id='n#{n}'>#{s}</span>\n"
+    @back += "<span class='footnote_orig' id='n#{n}'>#{s}</span>\n"
 
     if @mod_notes.include? n
       return ''
@@ -489,84 +582,40 @@ class CBETA::P5aToHTML
   end
 
   def handle_p(e)
-    r = '<p>'
-    r += "<span class='lineInfo'>#{@lb}</span>"
+    r = "<div class='p'>\n"
     r += traverse(e)
-    r + '</p>'
+    r + "</div>\n"
   end
 
   def handle_row(e)
-    "<div class='bip-table-row'>" + traverse(e) + "</div>"
+    "<tr>" + traverse(e) + "</tr>\n"
   end
 
   def handle_sg(e)
     '(' + traverse(e) + ')'
   end
 
-  def handle_sutra(xml_fn)
-    puts "convert sutra #{xml_fn}"
-    @back = { 0 => '' }
-    @char_count = 1
-    @dila_note = 0
-    @div_count = 0
+  def handle_file(xml_fn)
+    puts "read #{xml_fn}"
     @in_l = false
-    @juan = 0
     @lg_row_open = false
     @mod_notes = Set.new
     @next_line_buf = ''
     @open_divs = []
-    @sutra_no = File.basename(xml_fn, ".xml")
+    
+    if @book_id.start_with? 'DA'
+      @orig = nil?
+    else
+      @orig = @cbeta.get_canon_abbr(@book_id[0])
+      abort "未處理底本: #{@book_id[0]}" if @orig.nil?
+    end
 
     text = parse_xml(xml_fn)
 
     # 註標移到 lg-cell 裡面，不然以 table 呈現 lg 會有問題
     text.gsub!(/(<a class='noteAnchor'[^>]*><\/a>)(<div class="lg-cell"[^>]*>)/, '\2\1')
     
-    juans = text.split(/(<juan \d+>)/)
-    open = false
-    fo = nil
-    juan_no = nil
-    fn = ''
-    buf = ''
-    # 一卷一檔
-    juans.each { |j|
-      if j =~ /<juan (\d+)>$/
-        juan_no = $1.to_i
-        if @sutra_no.match(/^(T05|T06|T07)n0220/)
-          fn = "#{$1}n0220_%03d.htm" % juan_no
-        else
-          fn = "#{@sutra_no}_%03d.htm" % juan_no
-        end
-        output_path = File.join(@out_folder, fn)
-        fo = File.open(output_path, 'w')
-        open = true
-        s = <<eos
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta name="filename" content="#{fn}" />
-  <title>#{@title}</title>
-</head>
-<body>
-<!-- 
-  來源 XML CBETA P5a: https://github.com/cbeta-org/xml-p5a.git
-  轉檔程式: https://rubygems.org/gems/cbeta #{Date.today}
-  說明文件: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_%E8%BD%89_HTML
--->
-<div id='body'>
-eos
-        fo.write(s)
-        fo.write(buf)
-        buf = ''
-      elsif open
-        fo.write(j + "\n</div><!-- end of div[@id='body'] -->\n")
-        fo.write("<div id='back'>\n" + @back[juan_no] + "</div>\n")
-        fo.write('</body></html>')
-        fo.close
-      else
-        buf = j
-      end
-    }
+    @main_text += text    
   end
 
   def handle_t(e)
@@ -597,7 +646,7 @@ eos
   end
 
   def handle_table(e)
-    "<div class='bip-table'>" + traverse(e) + "</div>"
+    "<table>" + traverse(e) + "</table>"
   end
 
   def handle_text(e, mode)
@@ -609,43 +658,7 @@ eos
     r = s.gsub(/[\n\r]/, '')
 
     # 把 & 轉為 &amp;
-    r = CGI.escapeHTML(r)
-
-    # 正文區的文字外面要包 span
-    if @pass.last and mode=='html'
-      r = "<span class='t' l='#{@lb}' w='#{@char_count}'>#{r}</span>"
-      @char_count += r.size
-    end
-    r
-  end
-
-  def handle_vol(vol)
-    puts "convert volumn: #{vol}"
-
-    @orig = @cbeta.get_canon_abbr(vol[0])
-    abort "未處理底本" if @orig.nil?
-
-    @vol = vol
-    @series = vol[0]
-    @out_folder = File.join(@out_root, @series, vol)
-    FileUtils.remove_dir(@out_folder, force=true)
-    FileUtils::mkdir_p @out_folder
-    
-    source = File.join(@xml_root, @series, vol)
-    Dir[source+"/*"].each { |f|
-      handle_sutra(f)
-    }
-  end
-
-  def handle_vols(v1, v2)
-    puts "convert volumns: #{v1}..#{v2}"
-    @series = v1[0]
-    folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if vol < v1
-      next if vol > v2
-      handle_vol(vol)
-    }
+    CGI.escapeHTML(r)
   end
 
   def lem_note_cf(e)
@@ -679,6 +692,24 @@ eos
     r += '。' unless r.empty?
     r
   end
+  
+  def sutra_init
+    s = NAV_TEMPLATE % '<ol></ol>'
+    @nav_doc = Nokogiri::XML(s)
+    
+    @nav_doc.remove_namespaces!()
+    @nav_root_ol = @nav_doc.at_xpath('//ol')
+    @current_nav = [@nav_root_ol]
+    
+    @nav_root_ol.add_child("<li><a href='readme.xhtml'>編輯說明</a></li>")
+    
+    @mulu_count = 0
+    @main_text = ''
+    @back = ''
+    @dila_note = 0
+    
+    FileUtils::mkdir_p File.join(@temp_folder, 'img')
+  end
 
   def open_xml(fn)
     s = File.read(fn)
@@ -692,7 +723,7 @@ eos
 
     # <milestone unit="juan"> 前面的 lb 屬於新的這一卷
     s.gsub!(%r{((?:<pb [^>]+>\n?)?(?:<lb [^>]+>\n?)+)(<milestone [^>]*unit="juan"[^/>]*/>)}, '\2\1')
-
+      
     doc = Nokogiri::XML(s)
     doc.remove_namespaces!()
     doc
@@ -708,7 +739,7 @@ eos
     @pass = [false]
 
     doc = open_xml(xml_fn)
-    
+        
     e = doc.xpath("//titleStmt/title")[0]
     @title = traverse(e, 'txt')
     @title = @title.split()[-1]
@@ -722,9 +753,19 @@ eos
     text = traverse(body)
     text
   end
-
+  
+  def remove_empty_nav(node_list)
+    node_list.each do |n|
+      if n[:nav].empty?
+        n.delete(:nav)
+      else
+        remove_empty_nav(n[:nav])
+      end
+    end
+  end
+  
   def to_html(e)
-    e.to_xml(encoding: 'UTF-8', :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
+    e.to_xml(encoding: 'UTF-8', pertty: true, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
   end
 
   def traverse(e, mode='html')

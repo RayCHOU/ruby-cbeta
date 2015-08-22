@@ -4,7 +4,7 @@ require 'json'
 class CBETA::Gaiji
 	# 載入 CBETA 缺字資料庫
   def initialize()
-    fn = File.join(File.dirname(__FILE__), 'gaiji.json')
+    fn = File.join(File.dirname(__FILE__), '../data/gaiji.json')
     @gaijis = JSON.parse(File.read(fn))
   end
 

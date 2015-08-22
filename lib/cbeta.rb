@@ -35,7 +35,7 @@ class CBETA
 
 	# 載入藏經資料
   def initialize()
-    fn = File.join(File.dirname(__FILE__), 'canons.csv')
+    fn = File.join(File.dirname(__FILE__), 'data/canons.csv')
     text = File.read(fn)
     @canon_abbr = {}
     CSV.parse(text, :headers => true) do |row|
@@ -61,6 +61,7 @@ end
 
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
+require 'cbeta/p5a_to_epub'
 require 'cbeta/p5a_to_html'
 require 'cbeta/p5a_to_simple_html'
 require 'cbeta/p5a_to_text'
