@@ -17,16 +17,31 @@ class CBETA::P5aToEPUB
   # 某版用字缺的符號
   MISSING = '－'
   
-  NAV_TEMPLATE = File.read(File.join(File.dirname(__FILE__), '../data/epub-nav.xhtml'))
+  SCRIPT_FOLDER = File.dirname(__FILE__)
+  NAV_TEMPLATE = File.read(File.join(SCRIPT_FOLDER, '../data/epub-nav.xhtml'))
   MAIN = 'main.xhtml'  
+  DATA = File.join(SCRIPT_FOLDER, '../data')
 
   # @param temp_folder [String] 供 EPUB 暫存工作檔案的路徑
-  # @param graphic_base [String] 存放圖片的路徑
-  def initialize(temp_folder, graphic_base)
+  # @param options [Hash]
+  #   :epub_version [Integer] EPUB 版本，預設為 3
+  #   :graphic_base [String] 圖檔路徑
+  #   :readme [String] 說明檔，如果沒指定的話，就使用預設說明檔
+  def initialize(temp_folder, options={})
     @temp_folder = temp_folder
-    @graphic_base = graphic_base
+    @settings = {
+      epub_version: 3,
+      readme: File.join(DATA, 'epub-readme.xhtml')
+    }
+    @settings.merge!(options)
+    puts @settings
     @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
+    
+    # 載入 unicode 1.1 字集列表
+    fn = File.join(DATA, 'unicode-1.1.json')
+    json = File.read(fn)
+    @unicode1 = JSON.parse(json)
   end
 
   # 將某個 xml 轉為一個 EPUB
@@ -111,15 +126,20 @@ class CBETA::P5aToEPUB
   private
   
   def copy_static_files(src, dest)
-    p1 = File.join(File.dirname(__FILE__), '../data', src)
-    p2 = File.join(@temp_folder, dest)
-    FileUtils.copy(p1, p2)
+    dest = File.join(@temp_folder, dest)
+    FileUtils.copy(src, dest)
   end
   
   def create_epub(output_path)
-    copy_static_files('epub-readme.xhtml', 'readme.xhtml')
-    copy_static_files('epub-donate.xhtml', 'donate.xhtml')
-    create_main_html
+    copy_static_files(@settings[:readme], 'readme.xhtml')
+    
+    src = File.join(DATA, 'epub-donate.xhtml')
+    copy_static_files(src, 'donate.xhtml')
+    
+    src = File.join(DATA, 'epub.css')
+    copy_static_files(src, 'cbeta.css')
+    
+    create_html_by_juan
     create_nav_html
     
     title = @title
@@ -136,10 +156,12 @@ class CBETA::P5aToEPUB
       date Date.today.to_s
     }
 
+    juan_dir = File.join(@temp_folder, 'juans')
     # in resources block, you can define resources by its relative path and datasource.
     # item creator methods are: files, file.
     builder.resources(:workdir => @temp_folder) {
       glob 'img/*'
+      file 'cbeta.css'
       
       # this is navigation document.
       nav 'nav.xhtml'
@@ -147,28 +169,54 @@ class CBETA::P5aToEPUB
       # ordered item. will be added to spine.
       ordered {
         file 'readme.xhtml'
-        file 'main.xhtml'
+        Dir.entries(juan_dir).sort.each do |f|
+          next if f.start_with? '.'
+          file "juans/#{f}"
+        end
         file 'donate.xhtml'
       }
     }
+    builder.book.version = @settings[:epub_version]
     builder.generate_epub(output_path)
     puts "output: #{output_path}"
   end
 
-  def create_main_html
-    fn = File.join(@temp_folder, MAIN)
-    s = <<eos
+  def create_html_by_juan
+    juans = @main_text.split(/(<juan \d+>)/)
+    open = false
+    fo = nil
+    juan_no = nil
+    fn = ''
+    buf = ''
+    # 一卷一檔
+    juans.each do |j|
+      if j =~ /<juan (\d+)>$/
+        juan_no = $1.to_i
+        fn = "%03d.xhtml" % juan_no
+        output_path = File.join(@temp_folder, 'juans', fn)
+        fo = File.open(output_path, 'w')
+        open = true
+        s = <<eos
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8" />
   <title>#{@title}</title>
+  <link rel="stylesheet" type="text/css" href="../cbeta.css" />
 </head>
 <body>
 <div id='body'>
 eos
-    s += @main_text + "\n</div><!-- end of div[@id='body'] -->\n"
-    s += "<div id='back'>\n" + @back + "</div></body></html>\n"
-    File.write(fn, s)
+        fo.write(s)
+        fo.write(buf)
+        buf = ''
+      elsif open
+        fo.write(j + "\n</div><!-- end of div[@id='body'] -->\n")
+        fo.write('</body></html>')
+        fo.close
+      else
+        buf = j
+      end
+    end
   end
   
   def create_nav_html
@@ -180,19 +228,6 @@ eos
   end
   
   def handle_anchor(e)
-    id = e['id']
-    if e.has_attribute?('id')
-      if id.start_with?('nkr_note_orig')
-        note = @notes[id]
-        note_text = traverse(note)
-        n = id[/^nkr_note_orig_(.*)$/, 1]
-        @back += "<span class='footnote' id='n#{n}'>#{note_text}</span>\n"
-        return "<a class='noteAnchor' href='#n#{n}'></a>"
-      elsif id.start_with? 'fx'
-        return "<span class='star'>[＊]</span>"
-      end
-    end
-
     if e.has_attribute?('type')
       if e['type'] == 'circle'
         return '◎'
@@ -203,12 +238,7 @@ eos
   end
 
   def handle_app(e)
-    r = ''
-    if e['type'] == 'star'
-      c = e['corresp'][1..-1]
-      r = "<a class='noteAnchor star' href='#n#{c}'></a>"
-    end
-    r + traverse(e)
+    traverse(e)
   end
 
   def handle_byline(e)
@@ -228,24 +258,7 @@ eos
   end
 
   def handle_corr(e)
-    r = ''
-    if e.parent.name == 'choice'
-      sic = e.parent.at_xpath('sic')
-      unless sic.nil?
-        @dila_note += 1
-        r = "<a class='noteAnchor dila' href='#dila_note#{@dila_note}'></a>"
-
-        note = @orig
-        sic_text = traverse(sic, 'back')
-        if sic_text.empty?
-          note += MISSING
-        else
-          note += sic_text
-        end
-        @back += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
-      end
-    end
-    r + "<span class='cbeta'>%s</span>" % traverse(e)
+    traverse(e)
   end
 
   def handle_div(e)
@@ -296,56 +309,34 @@ eos
       when 'SD-E35B'
         return '）'
       else
-        return "<span class='siddam' roman='#{g['roman']}' code='#{gid}' char='#{g['sd-char']}'/>"
+        return g['roman']
       end
     end
     
     if gid.start_with?('RJ')
-      return "<span class='ranja' roman='#{g['roman']}' code='#{gid}' char='#{g['rj-char']}'/>"
+      return g['roman']
     end
    
     default = ''
     if g.has_key?('unicode')
-      #if @unicode1.include?(g['unicode'])
-      # 如果在 unicode ext-C, ext-D, ext-E 範圍內
-      if (0x2A700..0x2CEAF).include? g['unicode'].hex
-        default = g['unicode-char']
-      else
-        return g['unicode-char'] # 直接採用 unicode
+      if @unicode1.include?(g['unicode'])
+        return g['unicode-char'] # unicode 1.1 直接用
       end
     end
-
-    nor = ''
-    if g.has_key?('normal_unicode')
-      nor = g['normal_unicode']
-      default = nor if default.empty?
-    end
-
-    if g.has_key?('normal')
-      nor += ', ' unless nor==''
-      nor += g['normal']
-      default = g['normal'] if default.empty?
-    end
-
-    default = zzs if default.empty?
     
-    href = 'http://dict.cbeta.org/dict_word/gaiji-cb/%s/%s.gif' % [gid[2, 2], gid]
-    unless @back.include?(href)
-      @back += "<span id='#{gid}' class='gaijiInfo' figure_url='#{href}' zzs='#{zzs}' nor='#{nor}'>#{default}</span>\n"
-    end
-    "<a class='gaijiAnchor' href='##{gid}'>#{default}</a>"
+    zzs
   end
 
   def handle_graphic(e)
     url = e['url']
     url.sub!(/^.*figures\/(.*)$/, '\1')
     
-    src = File.join(@graphic_base, url)
+    src = File.join(@settings[:graphic_base], url)
     basename = File.basename(src)
     dest = File.join(@temp_folder, 'img', basename)
     FileUtils.copy(src, dest)
     
-    "<img src='img/#{basename}' />"
+    "<img src='../img/#{basename}' />"
   end
 
   def handle_head(e)
@@ -419,20 +410,7 @@ eos
   end
 
   def handle_lem(e)
-    r = ''
-    w = e['wit']
-    if w.include? 'CBETA' and not w.include? @orig
-      @dila_note += 1
-      r = "<a class='noteAnchor dila' href='#dila_note#{@dila_note}'></a>"
-      r += "<span class='cbeta'>%s</span>" % traverse(e)
-
-      note = lem_note_cf(e)
-      note += lem_note_rdg(e)
-      @back += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
-    else
-      r = traverse(e)
-    end
-    r
+    r = traverse(e)
   end
 
   def handle_lg(e)
@@ -465,7 +443,16 @@ eos
   end
 
   def handle_milestone(e)
-    ''
+    r = ''
+    if e['unit'] == 'juan'
+      r += "</div>" * @open_divs.size  # 如果有 div 跨卷，要先結束, ex: T55n2154, p. 680a29, 跨 19, 20 兩卷
+      @juan = e['n'].to_i
+      r += "<juan #{@juan}>"
+      @open_divs.each { |d|
+        r += "<div class='#{d['type']}'>"
+      }
+    end
+    r
   end
 
   def handle_mulu(e)
@@ -478,7 +465,8 @@ eos
     
     label = traverse(e, 'txt')
     @mulu_count += 1
-    li = @current_nav.last.add_child("<li><a href='#{@main_html}#mulu#{@mulu_count}'>#{label}</a></li>").first
+    fn = "juans/%03d.xhtml" % @juan
+    li = @current_nav.last.add_child("<li><a href='#{fn}#mulu#{@mulu_count}'>#{label}</a></li>").first
     ol = li.add_child('<ol></ol>').first
     @current_nav << ol
     "<a id='mulu#{@mulu_count}' />"
@@ -532,17 +520,13 @@ eos
       when 'equivalent'
         return ''
       when 'orig'
-        return handle_note_orig(e)
+        return ''
       when 'orig_biao'
-        return handle_note_orig(e, 'biao')
+        return ''
       when 'orig_ke'
-        return handle_note_orig(e, 'ke')
+        return ''
       when 'mod'
-        @pass << false
-        s = traverse(e)
-        @pass.pop
-        @back += "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
-        return "<a class='noteAnchor' href='#n#{n}'></a>"
+        return ""
       when 'rest'
         return ''
       else
@@ -556,28 +540,9 @@ eos
 
     if e.has_attribute?('place') && e['place']=='inline'
       r = traverse(e)
-      return "<span class='doube-line-note'>#{r}</span>"
+      return "(#{r})"
     else
       return traverse(e)
-    end
-  end
-
-  def handle_note_orig(e, anchor_type=nil)
-    n = e['n']
-    @pass << false
-    s = traverse(e)
-    @pass.pop
-    @back += "<span class='footnote_orig' id='n#{n}'>#{s}</span>\n"
-
-    if @mod_notes.include? n
-      return ''
-    else
-      label = case anchor_type
-      when 'biao' then " data-label='標#{n[-2..-1]}'"
-      when 'ke'   then " data-label='科#{n[-2..-1]}'"
-      else ''
-      end
-      return "<a class='noteAnchor' href='#n#{n}'#{label}></a>"
     end
   end
 
@@ -705,10 +670,10 @@ eos
     
     @mulu_count = 0
     @main_text = ''
-    @back = ''
     @dila_note = 0
     
     FileUtils::mkdir_p File.join(@temp_folder, 'img')
+    FileUtils::mkdir_p File.join(@temp_folder, 'juans')
   end
 
   def open_xml(fn)
@@ -763,7 +728,7 @@ eos
       end
     end
   end
-  
+    
   def to_html(e)
     e.to_xml(encoding: 'UTF-8', pertty: true, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
   end
