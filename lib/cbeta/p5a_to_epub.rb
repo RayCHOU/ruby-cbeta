@@ -23,18 +23,30 @@ class CBETA::P5aToEPUB
   DATA = File.join(SCRIPT_FOLDER, '../data')
 
   # @param temp_folder [String] 供 EPUB 暫存工作檔案的路徑
-  # @param options [Hash]
-  #   :epub_version [Integer] EPUB 版本，預設為 3
-  #   :graphic_base [String] 圖檔路徑
-  #   :readme [String] 說明檔，如果沒指定的話，就使用預設說明檔
-  def initialize(temp_folder, options={})
+  # @option opts [Integer] :epub_version (3) EPUB 版本
+  # @option opts [String] :graphic_base 圖檔路徑
+  # @option opts [String] :front_page 內文前可以加一份 HTML 檔，例如「編輯說明」
+  # @option opts [String] :front_page_title 加在目錄的 front_page 標題
+  # @option opts [String] :back_page 內文後可以加一份 HTML 檔，例如「版權聲明」
+  # @option opts [String] :back_page_title 加在目錄的 back_page 標題
+  #
+  # @example
+  #   options = {
+  #     epub_version: 3,
+  #     front_page: '/path/to/front_page.xhtml',
+  #     front_page_title: '編輯說明',
+  #     back_page: '/path/to/back_page.xhtml',
+  #     back_page_title: '贊助資訊',
+  #     graphic_base: '/path/to/grphic/files/root'
+  #   }
+  #   c = CBETA::P5aToEPUB.new('/path/to/temp/working/folder', options)
+  #   c.convert_folder('/path/to/xml/roo', '/path/for/output/epubs')  
+  def initialize(temp_folder, opts={})
     @temp_folder = temp_folder
     @settings = {
-      epub_version: 3,
-      readme: File.join(DATA, 'epub-readme.xhtml')
+      epub_version: 3
     }
-    @settings.merge!(options)
-    puts @settings
+    @settings.merge!(opts)
     @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
     
@@ -131,10 +143,13 @@ class CBETA::P5aToEPUB
   end
   
   def create_epub(output_path)
-    copy_static_files(@settings[:readme], 'readme.xhtml')
+    if @settings[:front_page]
+      copy_static_files(@settings[:front_page], 'front.xhtml')
+    end
     
-    src = File.join(DATA, 'epub-donate.xhtml')
-    copy_static_files(src, 'donate.xhtml')
+    if @settings[:back_page]
+      copy_static_files(@settings[:back_page], 'back.xhtml')
+    end
     
     src = File.join(DATA, 'epub.css')
     copy_static_files(src, 'cbeta.css')
@@ -157,6 +172,7 @@ class CBETA::P5aToEPUB
     }
 
     juan_dir = File.join(@temp_folder, 'juans')
+    settings = @settings
     # in resources block, you can define resources by its relative path and datasource.
     # item creator methods are: files, file.
     builder.resources(:workdir => @temp_folder) {
@@ -168,12 +184,14 @@ class CBETA::P5aToEPUB
       
       # ordered item. will be added to spine.
       ordered {
-        file 'readme.xhtml'
+        file 'front.xhtml' if settings[:front_page]
+        
         Dir.entries(juan_dir).sort.each do |f|
           next if f.start_with? '.'
           file "juans/#{f}"
         end
-        file 'donate.xhtml'
+        
+        file 'back.xhtml' if settings[:back_page]
       }
     }
     builder.book.version = @settings[:epub_version]
@@ -220,10 +238,19 @@ eos
   end
   
   def create_nav_html
-    @nav_root_ol.add_child("<li><a href='donate.xhtml'>贊助資訊</a></li>")
+    if @settings[:back_page_title]
+      s = @settings[:back_page_title]
+      @nav_root_ol.add_child("<li><a href='back.xhtml'>#{s}</a></li>")
+    end
+    
+    #s = @nav_root_ol.to_xml(indent: 2, encoding: 'UTF-8', pertty: true, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
+    s = @nav_root_ol.to_xml
+    
+    
+    s += "" % @toc_juan
     
     fn = File.join(@temp_folder, 'nav.xhtml')
-    s = NAV_TEMPLATE % to_html(@nav_root_ol)
+    s = NAV_TEMPLATE % s
     File.write(fn, s)
   end
   
@@ -243,7 +270,6 @@ eos
 
   def handle_byline(e)
     r = '<p class="byline">'
-    r += "<span class='lineInfo'>#{@lb}</span>"
     r += traverse(e)
     r + '</p>'
   end
@@ -258,7 +284,7 @@ eos
   end
 
   def handle_corr(e)
-    traverse(e)
+    "<span class='corr'>" + traverse(e) + "</span>"
   end
 
   def handle_div(e)
@@ -343,7 +369,7 @@ eos
     r = ''
     unless e['type'] == 'added'
       i = @open_divs.size
-      r = "<p class='head' data-head-level='#{i}'>%s</p>" % traverse(e)
+      r = "<p class='h#{i}'>%s</p>" % traverse(e)
     end
     r
   end
@@ -410,7 +436,14 @@ eos
   end
 
   def handle_lem(e)
-    r = traverse(e)
+    r = ''
+    w = e['wit']
+    if w.include? 'CBETA' and not w.include? @orig
+      r = "<span class='corr'>%s</span>" % traverse(e)
+    else
+      r = traverse(e)
+    end
+    r
   end
 
   def handle_lg(e)
@@ -456,19 +489,22 @@ eos
   end
 
   def handle_mulu(e)
-    return '' if e['type'] == '卷'
-    
-    level = e['level'].to_i
-    while @current_nav.size > level
-      @current_nav.pop
-    end
-    
-    label = traverse(e, 'txt')
     @mulu_count += 1
     fn = "juans/%03d.xhtml" % @juan
-    li = @current_nav.last.add_child("<li><a href='#{fn}#mulu#{@mulu_count}'>#{label}</a></li>").first
-    ol = li.add_child('<ol></ol>').first
-    @current_nav << ol
+    if e['type'] == '卷'
+      label = e['n']
+      @juan_nav.add_child("<li><a href='#{fn}#mulu#{@mulu_count}'>#{label}</a></li>")
+    else
+      level = e['level'].to_i
+      while @current_nav.size > (level+1)
+        @current_nav.pop
+      end
+    
+      label = traverse(e, 'txt')
+      li = @current_nav.last.add_child("<li><a href='#{fn}#mulu#{@mulu_count}'>#{label}</a></li>").first
+      ol = li.add_child('<ol></ol>').first
+      @current_nav << ol
+    end
     "<a id='mulu#{@mulu_count}' />"
   end
 
@@ -666,11 +702,21 @@ eos
     @nav_root_ol = @nav_doc.at_xpath('//ol')
     @current_nav = [@nav_root_ol]
     
-    @nav_root_ol.add_child("<li><a href='readme.xhtml'>編輯說明</a></li>")
+    if @settings[:front_page_title]
+      @nav_root_ol.add_child("<li><a href='readme.xhtml'>編輯說明</a></li>")
+    end
+    
+    li = @nav_root_ol.add_child("<li><a href='#'>章節目次</a></li>").first
+    ol = li.add_child('<ol></ol>').first
+    @current_nav << ol
+    
+    li = @nav_root_ol.add_child("<li><a href='#'>卷目次</a></li>").first
+    @juan_nav = li.add_child('<ol></ol>').first
     
     @mulu_count = 0
     @main_text = ''
     @dila_note = 0
+    @toc_juan = '' # 卷目次
     
     FileUtils::mkdir_p File.join(@temp_folder, 'img')
     FileUtils::mkdir_p File.join(@temp_folder, 'juans')

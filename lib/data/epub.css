@@ -1,3 +1,46 @@
+div.p {
+	margin-bottom: 20px;
+	line-height: 1.4;
+	text-indent: 2em;
+}
+p.byline {
+	text-align: right;
+}
+p.h1 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+p.h2 {
+	text-indent: 3em;
+	font-weight: bold;
+}
+p.h3 {
+	text-indent: 4em;
+	font-weight: bold;
+}
+p.h4 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+p.h5 {
+	text-indent: 3em;
+	font-weight: bold;
+}
+p.h6 {
+	text-indent: 4em;
+	font-weight: bold;
+}
+p.h7 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+p.h8 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+span.corr {
+	color: red;
+}
 table {
 	border-collapse: collapse;
 }
