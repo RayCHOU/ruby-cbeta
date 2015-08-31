@@ -6,6 +6,10 @@ Ruby gem for use CBETA resources
 
     gem install cbeta
 
+# Examples
+
+See folder examples/
+
 # Documentation
 
 [Documentation for cbeta on Rubydoc](http://www.rubydoc.info/gems/cbeta/)
