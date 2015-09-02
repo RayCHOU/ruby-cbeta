@@ -16,6 +16,8 @@ class CBETA::P5aToHTML
 
   # 某版用字缺的符號
   MISSING = '－'
+  
+  private_constant :PASS, :MISSING
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param out_root [String] 輸出 HTML 路徑
@@ -375,7 +377,7 @@ class CBETA::P5aToHTML
       @back[@juan] = @back[0]
       r += "<juan #{@juan}>"
       @open_divs.each { |d|
-        r += "<div class='#{d['type']}'>"
+        r += "<div class='div-#{d['type']}'>"
       }
     end
     r

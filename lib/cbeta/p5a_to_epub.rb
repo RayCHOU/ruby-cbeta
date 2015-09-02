@@ -21,6 +21,8 @@ class CBETA::P5aToEPUB
   NAV_TEMPLATE = File.read(File.join(SCRIPT_FOLDER, '../data/epub-nav.xhtml'))
   MAIN = 'main.xhtml'  
   DATA = File.join(SCRIPT_FOLDER, '../data')
+  
+  private_constant :PASS, :MISSING, :SCRIPT_FOLDER, :NAV_TEMPLATE, :MAIN, :DATA
 
   # @param temp_folder [String] 供 EPUB 暫存工作檔案的路徑
   # @option opts [Integer] :epub_version (3) EPUB 版本
@@ -57,6 +59,8 @@ class CBETA::P5aToEPUB
   end
 
   # 將某個 xml 轉為一個 EPUB
+  # @param input_path [String] 輸入 XML 檔路徑
+  # @param output_paath [String] 輸出 EPUB 檔路徑
   def convert_file(input_path, output_path)
     return false unless input_path.end_with? '.xml'
     
