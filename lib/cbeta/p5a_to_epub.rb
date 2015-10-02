@@ -92,7 +92,10 @@ class CBETA::P5aToEPUB
   #   c.convert_folder('/Users/ray/Documents/Projects/D道安/xml-p5a/DA', '/temp/cbeta-epub/DA')
   def convert_folder(input_folder, output_folder)
     @todo = {}
+    
+    # 先檢視整個資料夾，哪些是要多檔合一
     prepare_todo_list(input_folder, output_folder)
+    
     @todo.each_pair do |k, v|
       convert_sutra(k, v[:xml_files], v[:epub])
     end
@@ -133,7 +136,6 @@ class CBETA::P5aToEPUB
     if xml_files.size > 1
       @title.sub!(/^(.*)\(.*?\)$/, '\1')
       @title.sub!(/^(.*?)(（.*?）)+$/, '\1')
-      puts @title
     end
     create_epub(out)
   end
@@ -208,7 +210,7 @@ class CBETA::P5aToEPUB
     end
     
     builder.generate_epub(output_path)
-    puts "output: #{output_path}"
+    puts "output: #{output_path}\n\n"
   end
 
   def create_html_by_juan
@@ -512,7 +514,7 @@ eos
     r = ''
     if e['unit'] == 'juan'
       r += "</div>" * @open_divs.size  # 如果有 div 跨卷，要先結束, ex: T55n2154, p. 680a29, 跨 19, 20 兩卷
-      @juan = e['n'].to_i
+      @juan += 1
       r += "<juan #{@juan}>"
       @open_divs.each { |d|
         r += "<div class='#{d['type']}'>"
@@ -751,6 +753,7 @@ eos
     @main_text = ''
     @dila_note = 0
     @toc_juan = '' # 卷目次
+    @juan = 0
     
     FileUtils::mkdir_p File.join(@temp_folder, 'img')
     FileUtils::mkdir_p File.join(@temp_folder, 'juans')
