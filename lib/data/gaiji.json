@@ -50,10 +50,7 @@
   "CB00178": {
     "zzs": "[木*奈]",
     "unicode": "3B88",
-    "unicode-char": "㮈",
-    "zhuyin": [
-      "ㄋㄞˋ"
-    ]
+    "unicode-char": "㮈"
   },
   "CB00238": {
     "zzs": "[打-丁+毛]",
@@ -107,10 +104,7 @@
     "zzs": "[馬*犬]",
     "normal": "馱",
     "unicode": "4B7E",
-    "unicode-char": "䭾",
-    "zhuyin": [
-      "ㄊㄨㄛˊ"
-    ]
+    "unicode-char": "䭾"
   },
   "CB00509": {
     "zzs": "[商/衣]",
@@ -2933,8 +2927,7 @@
   },
   "CB04775": {
     "zzs": "[柷-口+登]",
-    "normal": "凳",
-    "normal_unicode": "櫈"
+    "normal": "凳"
   },
   "CB00144": {
     "zzs": "[少/免]",
@@ -3403,10 +3396,7 @@
   "CB05105": {
     "zzs": "[契-大+石]",
     "unicode": "40AE",
-    "unicode-char": "䂮",
-    "zhuyin": [
-      "ㄌㄩㄝˋ"
-    ]
+    "unicode-char": "䂮"
   },
   "SD-CFC5": {
     "sd-char": "狣",
@@ -42271,10 +42261,7 @@
   "CB06535": {
     "zzs": "[自/本]",
     "unicode": "2690E",
-    "unicode-char": "𦤎",
-    "zhuyin": [
-      "ㄍㄠ"
-    ]
+    "unicode-char": "𦤎"
   },
   "CB06952": {
     "zzs": "[狂-王+羊]",
@@ -45192,11 +45179,7 @@
   "CB05711": {
     "zzs": "[颱-台+日]",
     "unicode": "4AFB",
-    "unicode-char": "䫻",
-    "zhuyin": [
-      "ㄒㄩㄝˊ",
-      "ㄩˋ"
-    ]
+    "unicode-char": "䫻"
   },
   "CB15400": {
     "zzs": "[身*國]",
@@ -49191,11 +49174,7 @@
     "zzs": "[仁-二+嶲]",
     "normal": "俊",
     "unicode": "349E",
-    "unicode-char": "㒞",
-    "zhuyin": [
-      "ㄐㄩㄣˋ",
-      "ㄎㄜˇ"
-    ]
+    "unicode-char": "㒞"
   },
   "CB13910": {
     "zzs": "[打-丁+閵]"
@@ -126184,5 +126163,72 @@
       "ㄅㄧㄣˇ",
       "ㄌㄧㄣˇ"
     ]
+  },
+  "CB32783": {
+    "zzs": "[(糸*子)/心]"
+  },
+  "CB32784": {
+    "zzs": "[受-又+(撤-育)]"
+  },
+  "CB32785": {
+    "zzs": "[烈-列+((白/匕)*旡)]"
+  },
+  "CB32781": {
+    "zzs": "[虫*雷]",
+    "unicode": "274BD",
+    "unicode-char": "𧒽"
+  },
+  "CB32792": {
+    "zzs": "[番*韭]",
+    "unicode": "2940F",
+    "unicode-char": "𩐏"
+  },
+  "CB32793": {
+    "zzs": "[米*(產-文+(立-一))]"
+  },
+  "CB32821": {
+    "zzs": "[入/耳]",
+    "normal": "聞",
+    "unicode": "26535",
+    "unicode-char": "𦔵"
+  },
+  "CB32825": {
+    "zzs": "[舟*定]",
+    "unicode": "26A58",
+    "unicode-char": "𦩘"
+  },
+  "CB32828": {
+    "zzs": "[打-丁+審]",
+    "unicode": "22E19",
+    "unicode-char": "𢸙"
+  },
+  "CB32832": {
+    "zzs": "[卄/(袖-由+任)]"
+  },
+  "CB32830": {
+    "zzs": "[烈-列+毛]",
+    "unicode": "241AC",
+    "unicode-char": "𤆬"
+  },
+  "CB32983": {
+    "zzs": "[雨/如]",
+    "unicode": "290B0",
+    "unicode-char": "𩂰"
+  },
+  "CB32984": {
+    "zzs": "[貝*昜]",
+    "normal": "賜",
+    "unicode": "27DBD",
+    "unicode-char": "𧶽"
+  },
+  "CB32985": {
+    "zzs": "[怡-台+志]",
+    "unicode": "2267A",
+    "unicode-char": "𢙺"
+  },
+  "CB32986": {
+    "zzs": "[棣-木+王]",
+    "unicode": "3ED6",
+    "unicode-char": "㻖"
   }
 }

@@ -15,6 +15,10 @@ require 'set'
 #   c.convert('T01')
 #
 class CBETA::P5aToText
+  # 內容不輸出的元素
+  PASS=['back', 'teiHeader']
+  
+  private_constant :PASS
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param output_root [String] 輸出 Text 路徑
@@ -444,7 +448,7 @@ class CBETA::P5aToText
   def handle_vol(vol)
     puts "convert volumn: #{vol}"
 
-    @orig = @cbeta.get_canon_abbr(vol[0])
+    @orig = @cbeta.get_canon_symbol(vol[0])
     abort "未處理底本" if @orig.nil?
 
     @vol = vol
@@ -508,7 +512,11 @@ class CBETA::P5aToText
       text = frag.content
       text = appify(text) if @format == 'app'
 
-      fn = "#{ed}.txt"
+      if ed == @orig
+        fn = "#{ed}-orig.txt"
+      else
+        fn = "#{ed}.txt"
+      end
       output_path = File.join(folder, fn)
       File.write(output_path, text)
     end

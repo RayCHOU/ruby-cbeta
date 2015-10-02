@@ -43,6 +43,10 @@ class CBETA
     	next if row['abbreviation'].empty?
       @canon_abbr[row['id']] = row['abbreviation']
     end
+    
+    fn = File.join(File.dirname(__FILE__), 'data/categories.json')
+    s = File.read(fn)
+    @categories = JSON.parse(s)
   end
 
   # 取得藏經略符
@@ -52,17 +56,43 @@ class CBETA
   #
   # @example
   #   cbeta = CBETA.new
-  #   cbeta.get_canon_abbr('T') # return "【大】"
-	def get_canon_abbr(id)
+  #   cbeta.get_canon_symbol('T') # return "【大】"
+	def get_canon_symbol(id)
 		return nil unless @canon_abbr.key? id
 		@canon_abbr[id]
 	end
+  
+  # 取得藏經略名
+  #
+  # @param id [String] 藏經 ID, 例如大正藏的 ID 是 "T"
+  # @return [String] 藏經短名，例如 "大"
+  #
+  # @example
+  #   cbeta = CBETA.new
+  #   cbeta.get_canon_abbr('T') # return "大"
+	def get_canon_abbr(id)
+    r = get_canon_symbol(id)
+    return nil if r.nil?
+    r.sub(/^【(.*?)】$/, '\1')
+	end
+  
+  # 傳入經號，取得部類
+  # @param book_id [String] Book ID (經號), ex. "T0220"
+  # @return [String] 部類名稱，例如 "阿含部類"
+  #
+  # @example
+  #   cbeta = CBETA.new
+  #   cbeta.get_category('T0220') # return '般若部類'
+  def get_category(book_id)
+    @categories[book_id]
+  end
 end
 
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
 require 'cbeta/p5a_to_epub'
 require 'cbeta/p5a_to_html'
+require 'cbeta/p5a_to_html_for_every_edition'
 require 'cbeta/p5a_to_simple_html'
 require 'cbeta/p5a_to_text'
 require 'cbeta/p5a_validator'

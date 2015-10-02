@@ -27,6 +27,10 @@ class CBETA::P5aToEPUB
   # @param temp_folder [String] 供 EPUB 暫存工作檔案的路徑
   # @option opts [Integer] :epub_version (3) EPUB 版本
   # @option opts [String] :graphic_base 圖檔路徑
+  #   * graphic_base/covers: 封面圖檔位置
+  #   * graphic_base/figures: 插圖圖檔位置
+  #   * graphic_base/sd-gif: 悉曇字圖檔位置
+  #   * graphic_base/rj-gif: 蘭札體圖檔位置
   # @option opts [String] :front_page 內文前可以加一份 HTML 檔，例如「編輯說明」
   # @option opts [String] :front_page_title 加在目錄的 front_page 標題
   # @option opts [String] :back_page 內文後可以加一份 HTML 檔，例如「版權聲明」
@@ -75,8 +79,8 @@ class CBETA::P5aToEPUB
     create_epub(output_path)
   end
 
-  # 將某個資料夾下的每個 xml 檔都轉為一個對應的 EPUB。
-  # 資料夾可以是巢狀，全部都會遞迴處理。
+  # 將某個資料夾下的每部作品都轉為一個對應的 EPUB。
+  # 跨冊的作品也會合成一個 EPUB。
   #
   # @example
   #   require 'cbeta'
@@ -87,19 +91,10 @@ class CBETA::P5aToEPUB
   #   c = CBETA::P5aToEPUB.new(TEMP, IMG)
   #   c.convert_folder('/Users/ray/Documents/Projects/D道安/xml-p5a/DA', '/temp/cbeta-epub/DA')
   def convert_folder(input_folder, output_folder)
-    FileUtils.remove_dir(output_folder, force=true)
-    FileUtils::mkdir_p output_folder
-    Dir.foreach(input_folder) do |f|
-      next if f.start_with? '.'
-      p1 = File.join(input_folder, f)
-      if File.file?(p1)
-        f.sub!(/.xml$/, '.epub')
-        p2 = File.join(output_folder, f)
-        convert_file(p1, p2)
-      else
-        p2 = File.join(output_folder, f)
-        convert_folder(p1, p2)
-      end
+    @todo = {}
+    prepare_todo_list(input_folder, output_folder)
+    @todo.each_pair do |k, v|
+      convert_sutra(k, v[:xml_files], v[:epub])
     end
   end
   
@@ -129,13 +124,17 @@ class CBETA::P5aToEPUB
   #   ]
   #   
   #   c = CBETA::P5aToEPUB.new(TEMP)
-  #   c.convert_sutra('T0220', '大般若經', xml_files, '/temp/cbeta-epub/T0220.epub')
-  def convert_sutra(book_id, title, xml_files, out)
+  #   c.convert_sutra('T0220', xml_files, '/temp/cbeta-epub/T0220.epub')
+  def convert_sutra(book_id, xml_files, out)
     @book_id = book_id
     sutra_init
     xml_files.each { |f| handle_file(f) }
     
-    @title = title
+    if xml_files.size > 1
+      @title.sub!(/^(.*)\(.*?\)$/, '\1')
+      @title.sub!(/^(.*?)(（.*?）)+$/, '\1')
+      puts @title
+    end
     create_epub(out)
   end
 
@@ -199,6 +198,15 @@ class CBETA::P5aToEPUB
       }
     }
     builder.book.version = @settings[:epub_version]
+    
+    canon = book_id.sub(/^([A-Z]{1,2}).*$/, '\1')
+    cover = File.join(settings[:graphic_base], 'covers', canon, "#{book_id}.jpg")
+    if File.exist? cover
+      File.open(cover) do |io|
+        builder.book.add_item(cover, io).cover_image
+      end
+    end
+    
     builder.generate_epub(output_path)
     puts "output: #{output_path}"
   end
@@ -323,14 +331,6 @@ eos
     abort "Line:#{__LINE__} 無缺字資料:#{gid}" if g.nil?
     zzs = g['zzs']
     
-    if mode == 'txt'
-      return g['roman'] if gid.start_with?('SD')
-      if zzs.nil?
-        abort "缺組字式：#{g}"
-      else
-        return zzs
-      end
-    end
 
     if gid.start_with?('SD')
       case gid
@@ -339,14 +339,43 @@ eos
       when 'SD-E35B'
         return '）'
       else
-        return g['roman']
+        return g['roman'] if g.key? 'roman'
+        
+        if mode == 'txt'
+          puts "警告：純文字模式出現悉曇字：#{gid}"
+          return gid
+        else
+          # 如果沒有羅馬轉寫就顯示圖檔
+          src = File.join(@settings[:graphic_base], 'sd-gif', gid[3..4], gid+'.gif')
+          basename = File.basename(src)
+          dest = File.join(@temp_folder, 'img', basename)
+          FileUtils.copy(src, dest)    
+          return "<img src='../img/#{basename}' />"
+        end
       end
     end
     
     if gid.start_with?('RJ')
-      return g['roman']
+      return g['roman'] if g.key? 'roman'
+      
+      if mode == 'txt'
+        puts "警告：純文字模式出現蘭札體：#{gid}"
+        return gid
+      else
+        # 如果沒有羅馬轉寫就顯示圖檔
+        src = File.join(@settings[:graphic_base], 'rj-gif', gid[3..4], gid+'.gif')
+        basename = File.basename(src)
+        dest = File.join(@temp_folder, 'img', basename)
+        FileUtils.copy(src, dest)    
+        return "<img src='../img/#{basename}' />"
+      end
     end
-   
+    
+    if mode == 'txt'
+      abort "缺組字式：#{g}" if zzs.nil?
+      return zzs
+    end
+    
     default = ''
     if g.has_key?('unicode')
       if @unicode1.include?(g['unicode'])
@@ -359,7 +388,7 @@ eos
 
   def handle_graphic(e)
     url = e['url']
-    url.sub!(/^.*figures\/(.*)$/, '\1')
+    url.sub!(/^.*(figures\/.*)$/, '\1')
     
     src = File.join(@settings[:graphic_base], url)
     basename = File.basename(src)
@@ -516,6 +545,7 @@ eos
     return '' if e.comment?
     return handle_text(e, mode) if e.text?
     return '' if PASS.include?(e.name)
+
     r = case e.name
     when 'anchor'    then handle_anchor(e)
     when 'app'       then handle_app(e)
@@ -767,6 +797,31 @@ eos
 
     text = traverse(body)
     text
+  end
+  
+  def prepare_todo_list(input_folder, output_folder)
+    Dir.foreach(input_folder) do |f|
+      next if f.start_with? '.'
+      p1 = File.join(input_folder, f)
+      if File.file?(p1)
+        work = f.sub(/^([A-Z]{1,2})\d{2,3}n(.*)\.xml$/, '\1\2')
+        work = 'T0220' if work.start_with? 'T0220'
+        unless @todo.key? work
+          @todo[work] = { xml_files: [] }
+        end
+        hash = @todo[work]
+        hash[:xml_files] << p1
+        
+        folders = output_folder.split('/')
+        folders.pop if folders[-1].match(/^[A-Z]{1,2}\d{2,3}$/)
+        folder = folders.join('/')
+        FileUtils::mkdir_p folder
+        hash[:epub] = File.join(folder, "#{work}.epub")
+      else
+        p2 = File.join(output_folder, f)
+        prepare_todo_list(p1, p2)
+      end
+    end
   end
   
   def remove_empty_nav(node_list)

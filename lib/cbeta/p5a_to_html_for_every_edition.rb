@@ -5,19 +5,19 @@ require 'json'
 require 'nokogiri'
 require 'set'
 
-# Convert CBETA XML P5a to HTML
+# Convert CBETA XML P5a to HTML for every edition
+#
+# 例如 T0001 長阿含經 有 CBETA、元、宋、聖、磧砂、unknown、大、明、麗等版本，
+# 每一個版本都會輸出一個 HTML 檔，以版本為檔名。
 #
 # CBETA XML P5a 可由此取得: https://github.com/cbeta-git/xml-p5a
 #
 # 轉檔規則請參考: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_轉_HTML
-class CBETA::P5aToHTML
+class CBETA::P5aToHTMLForEveryEdition
   # 內容不輸出的元素
   PASS=['back', 'teiHeader']
-
-  # 某版用字缺的符號
-  MISSING = '－'
   
-  private_constant :PASS, :MISSING
+  private_constant :PASS
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param out_root [String] 輸出 HTML 路徑
@@ -132,24 +132,7 @@ class CBETA::P5aToHTML
   end
 
   def handle_corr(e)
-    r = ''
-    if e.parent.name == 'choice'
-      sic = e.parent.at_xpath('sic')
-      unless sic.nil?
-        @dila_note += 1
-        r = "<a class='noteAnchor dila' href='#dila_note#{@dila_note}'></a>"
-
-        note = @orig
-        sic_text = traverse(sic, 'back')
-        if sic_text.empty?
-          note += MISSING
-        else
-          note += sic_text
-        end
-        @back[@juan] += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
-      end
-    end
-    r + "<span class='cbeta'>%s</span>" % traverse(e)
+    "<r w='【CBETA】' l='#{@lb}' w='#{@char_count}'>%s</r>" % traverse(e)
   end
 
   def handle_div(e)
@@ -314,7 +297,7 @@ class CBETA::P5aToHTML
       r += "</div><!-- end of lg-row -->"
       @lg_row_open = false
     end
-    r += "<span class='lb' \nid='#{line_head}'>#{line_head}</span>"
+    r += "<span class='lb' id='#{line_head}'>#{line_head}</span>"
     unless @next_line_buf.empty?
       r += @next_line_buf
       @next_line_buf = ''
@@ -323,20 +306,12 @@ class CBETA::P5aToHTML
   end
 
   def handle_lem(e)
-    r = ''
-    w = e['wit']
-    if w.include? 'CBETA' and not w.include? @orig
-      @dila_note += 1
-      r = "<a class='noteAnchor dila' href='#dila_note#{@dila_note}'></a>"
-      r += "<span class='cbeta'>%s</span>" % traverse(e)
-
-      note = lem_note_cf(e)
-      note += lem_note_rdg(e)
-      @back[@juan] += "<span class='footnote_dila' id='dila_note#{@dila_note}'>#{note}</span>\n"
-    else
-      r = traverse(e)
-    end
-    r
+    w = e['wit'].scan(/【.*?】/)
+    @editions.merge w
+    w = w.join(' ')
+    
+    r = traverse(e)
+    "<r w='#{w}' l='#{@lb}' w='#{@char_count}'>#{r}</r>"
   end
 
   def handle_lg(e)
@@ -420,10 +395,10 @@ class CBETA::P5aToHTML
     when 'note'      then handle_note(e)
     when 'milestone' then handle_milestone(e)
     when 'p'         then handle_p(e)
-    when 'rdg'       then ''
+    when 'rdg'       then handle_rdg(e)
     when 'reg'       then ''
     when 'row'       then handle_row(e)
-    when 'sic'       then ''
+    when 'sic'       then handle_sic(e)
     when 'sg'        then handle_sg(e)
     when 't'         then handle_t(e)
     when 'tt'        then handle_tt(e)
@@ -496,6 +471,13 @@ class CBETA::P5aToHTML
     r += traverse(e)
     r + '</p>'
   end
+  
+  def handle_rdg(e)
+    r = traverse(e)
+    w = e['wit'].scan(/【.*?】/)
+    @editions.merge w
+    "<r w='#{e['wit']}' l='#{@lb}' w='#{@char_count}'>#{r}</r>"
+  end
 
   def handle_row(e)
     "<div class='bip-table-row'>" + traverse(e) + "</div>"
@@ -504,9 +486,14 @@ class CBETA::P5aToHTML
   def handle_sg(e)
     '(' + traverse(e) + ')'
   end
+  
+  def handle_sic(e)
+    "<r w='#{@orig}' l='#{@lb}' w='#{@char_count}'>" + traverse(e) + "</r>"
+  end
 
   def handle_sutra(xml_fn)
     puts "convert sutra #{xml_fn}"
+    @editions = Set.new ["【CBETA】"]
     @back = { 0 => '' }
     @char_count = 1
     @dila_note = 0
@@ -534,39 +521,11 @@ class CBETA::P5aToHTML
     juans.each { |j|
       if j =~ /<juan (\d+)>$/
         juan_no = $1.to_i
-        if @sutra_no.match(/^(T05|T06|T07)n0220/)
-          fn = "#{$1}n0220_%03d.htm" % juan_no
-        else
-          fn = "#{@sutra_no}_%03d.htm" % juan_no
-        end
-        output_path = File.join(@out_folder, fn)
-        fo = File.open(output_path, 'w')
-        open = true
-        s = <<eos
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta name="filename" content="#{fn}" />
-  <title>#{@title}</title>
-</head>
-<body>
-<!-- 
-  來源 XML CBETA P5a: https://github.com/cbeta-org/xml-p5a.git
-  轉檔程式: https://rubygems.org/gems/cbeta #{Date.today}
-  說明文件: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_轉_HTML
--->
-<div id='body'>
-eos
-        fo.write(s)
-        fo.write(buf)
-        buf = ''
-      elsif open
-        fo.write(j + "\n</div><!-- end of div[@id='body'] -->\n")
-        fo.write("<div id='back'>\n" + @back[juan_no] + "</div>\n")
-        fo.write('</body></html>')
-        fo.close
-      else
+      elsif juan_no.nil?
         buf = j
+      else
+        write_juan(juan_no, buf+j)
+        buf = ''
       end
     }
   end
@@ -609,6 +568,8 @@ eos
 
     # cbeta xml 文字之間會有多餘的換行
     r = s.gsub(/[\n\r]/, '')
+    
+    text_size = r.size
 
     # 把 & 轉為 &amp;
     r = CGI.escapeHTML(r)
@@ -616,7 +577,7 @@ eos
     # 正文區的文字外面要包 span
     if @pass.last and mode=='html'
       r = "<span class='t' l='#{@lb}' w='#{@char_count}'>#{r}</span>"
-      @char_count += r.size
+      @char_count += text_size
     end
     r
   end
@@ -624,13 +585,12 @@ eos
   def handle_vol(vol)
     puts "convert volumn: #{vol}"
 
-    @orig = @cbeta.get_canon_abbr(vol[0])
+    @orig = @cbeta.get_canon_symbol(vol[0])
     abort "未處理底本" if @orig.nil?
 
     @vol = vol
     @series = vol[0]
-    @out_folder = File.join(@out_root, @series, vol)
-    FileUtils.remove_dir(@out_folder, force=true)
+    @out_folder = File.join(@out_root, @series)
     FileUtils::mkdir_p @out_folder
     
     source = File.join(@xml_root, @series, vol)
@@ -650,42 +610,6 @@ eos
     }
   end
 
-  def lem_note_cf(e)
-    # ex: T32n1670A.xml, p. 703a16
-    # <note type="cf1">K30n1002_p0257a01-a23</note>
-    refs = []
-    e.xpath('./note').each { |n|
-      if n.key?('type') and n['type'].start_with? 'cf'
-        s = n.content
-        if linehead_exist_in_cbeta(s)
-          s = "<span class='note_cf'>#{s}</span>"
-        end
-        refs << s
-      end
-    }
-    if refs.empty?
-      ''
-    else
-      '修訂依據：' + refs.join('；') + '。'
-    end
-  end
-
-  def lem_note_rdg(lem)
-    r = ''
-    app = lem.parent
-    @pass << false
-    app.xpath('rdg').each { |rdg|
-      if rdg['wit'].include? @orig
-        s = traverse(rdg, 'back')
-        s = MISSING if s.empty?
-        r += @orig + s
-      end
-    }
-    @pass.pop
-    r += '。' unless r.empty?
-    r
-  end
-  
   def linehead_exist_in_cbeta(s)
     @xml_root
     corpus = s[0]
@@ -753,6 +677,44 @@ eos
       r += s
     }
     r
+  end
+  
+  def write_juan(juan_no, html)
+    if @sutra_no.match(/^(T05|T06|T07)n0220/)
+      work = "T0220"
+    else
+      work = @sutra_no.sub(/^([A-Z])\d{2,3}n(.*)$/, '\1\2')
+    end
+    canon = work[0]
+    juan = "%03d" % juan_no
+    folder = File.join(@out_folder, work, juan)
+    FileUtils.remove_dir(folder, force=true)
+    FileUtils.makedirs folder
+    @editions.each do |ed|
+      frag = Nokogiri::HTML.fragment("<div id='body'>#{html}</div>")
+      frag.search("r").each do |node|
+        if node['w'] == ed
+          node.add_previous_sibling node.inner_html
+        end
+        node.remove
+      end
+      text = frag.to_html
+
+      fn = ed.sub(/^【(.*)】$/, '\1') + '.htm'
+      output_path = File.join(folder, fn)
+      text = <<eos
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="filename" content="#{fn}" />
+  <title>#{@title}</title>
+</head>
+<body>
+#{text}
+</body></html>
+eos
+      File.write(output_path, text)
+    end    
   end
 
 end
