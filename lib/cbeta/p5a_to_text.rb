@@ -23,10 +23,18 @@ class CBETA::P5aToText
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param output_root [String] 輸出 Text 路徑
   # @param format [String] 輸出格式，例：'app'
-  def initialize(xml_root, output_root, format=nil)
+  # @option opts [String] :format 輸出格式，例：'app'，預設是 normal
+  # @option opts [String] :encoding 輸出編碼，預設 'UTF-8'
+  def initialize(xml_root, output_root, opts={})
     @xml_root = xml_root
     @output_root = output_root
-    @format = format
+    
+    @settings = {
+      format: nil,
+      encoding: 'UTF-8'
+    }
+    @settings.merge!(opts)
+    
     @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
   end
@@ -127,13 +135,13 @@ class CBETA::P5aToText
 
   def handle_byline(e)
     r = traverse(e)
-    r += @format=='app' ? "\t" : "\n"
+    r += @settings[:format]=='app' ? "\t" : "\n"
     r
   end
 
   def handle_cell(e)
     r = traverse(e)
-    r += @format=='app' ? "\t" : "\n"
+    r += @settings[:format]=='app' ? "\t" : "\n"
     r
   end
 
@@ -157,13 +165,13 @@ class CBETA::P5aToText
 
   def handle_docNumber(e)
     r = traverse(e)
-    r += @format == 'app' ? "\t" : "\n"
+    r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
   def handle_figure(e)
     r = traverse(e)
-    r += @format == 'app' ? "\t" : "\n"
+    r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
@@ -212,24 +220,24 @@ class CBETA::P5aToText
 
   def handle_head(e)
     r = traverse(e)
-    r += @format == 'app' ? "\t" : "\n"
+    r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
   def handle_item(e)
     r = traverse(e)
-    r += @format == 'app' ? "\t" : "\n"
+    r += @settings[:format] == 'app' ? "\t" : "\n"
   end
 
   def handle_juan(e)
     r = traverse(e)
-    r += @format == 'app' ? "\t" : "\n"
+    r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
   def handle_l(e)
     r = traverse(e)
-    if @format == 'app'
+    if @settings[:format] == 'app'
       r += "\t"
     else
       r += "\n" unless @lg_type == 'abnormal'
@@ -239,7 +247,7 @@ class CBETA::P5aToText
 
   def handle_lb(e)
     r = ''
-    if @format == 'app'
+    if @settings[:format] == 'app'
       r += "\n#{e['n']}║"
     end
     unless @next_line_buf.empty?
@@ -264,7 +272,7 @@ class CBETA::P5aToText
 
   def handle_list(e)
     r = ''
-    r += "\n" unless @format == 'app'
+    r += "\n" unless @settings[:format] == 'app'
     r + traverse(e)
   end
 
@@ -334,7 +342,7 @@ class CBETA::P5aToText
 
   def handle_p(e)
     r = traverse(e)
-    r += @format == 'app' ? "\t" : "\n"
+    r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
@@ -510,15 +518,18 @@ class CBETA::P5aToText
         end
       end
       text = frag.content
-      text = appify(text) if @format == 'app'
+      text = appify(text) if @settings[:format] == 'app'
 
+      ed2 = ed.sub(/^【(.*?)】$/, '\1')
       if ed == @orig
-        fn = "#{ed}-orig.txt"
+        fn = "#{ed2}-orig.txt"
       else
-        fn = "#{ed}.txt"
+        fn = "#{ed2}.txt"
       end
       output_path = File.join(folder, fn)
-      File.write(output_path, text)
+      fo = File.open(output_path, 'w', encoding: @settings[:encoding])
+      fo.write(text)
+      fo.close
     end
   end
 end

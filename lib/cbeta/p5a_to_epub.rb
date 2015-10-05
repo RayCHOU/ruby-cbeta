@@ -67,10 +67,7 @@ class CBETA::P5aToEPUB
   # @param output_paath [String] 輸出 EPUB 檔路徑
   def convert_file(input_path, output_path)
     return false unless input_path.end_with? '.xml'
-    
-    FileUtils.remove_dir(@temp_folder, force=true)
-    FileUtils::mkdir_p @temp_folder
-    
+      
     @book_id = File.basename(input_path, ".xml")
     
     sutra_init
@@ -141,6 +138,11 @@ class CBETA::P5aToEPUB
   end
 
   private
+  
+  def clear_temp_folder
+    FileUtils.remove_dir(@temp_folder, force=true)
+    FileUtils::mkdir_p @temp_folder
+  end
   
   def copy_static_files(src, dest)
     dest = File.join(@temp_folder, dest)
@@ -731,6 +733,8 @@ eos
   end
   
   def sutra_init
+    clear_temp_folder
+    
     s = NAV_TEMPLATE % '<ol></ol>'
     @nav_doc = Nokogiri::XML(s)
     
