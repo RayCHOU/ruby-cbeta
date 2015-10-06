@@ -35,6 +35,7 @@ class CBETA::P5aToEPUB
   # @option opts [String] :front_page_title 加在目錄的 front_page 標題
   # @option opts [String] :back_page 內文後可以加一份 HTML 檔，例如「版權聲明」
   # @option opts [String] :back_page_title 加在目錄的 back_page 標題
+  # @option opts [Boolean] :juan_toc 目次中是否要有卷目次，預設為 true
   #
   # @example
   #   options = {
@@ -50,7 +51,8 @@ class CBETA::P5aToEPUB
   def initialize(temp_folder, opts={})
     @temp_folder = temp_folder
     @settings = {
-      epub_version: 3
+      epub_version: 3,
+      juan_toc: true
     }
     @settings.merge!(opts)
     @cbeta = CBETA.new
@@ -261,9 +263,8 @@ eos
     
     #s = @nav_root_ol.to_xml(indent: 2, encoding: 'UTF-8', pertty: true, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
     s = @nav_root_ol.to_xml
-    
-    
-    s += "" % @toc_juan
+        
+    #s += "" % @toc_juan
     
     fn = File.join(@temp_folder, 'nav.xhtml')
     s = NAV_TEMPLATE % s
@@ -529,8 +530,10 @@ eos
     @mulu_count += 1
     fn = "juans/%03d.xhtml" % @juan
     if e['type'] == '卷'
-      label = e['n']
-      @juan_nav.add_child("<li><a href='#{fn}#mulu#{@mulu_count}'>#{label}</a></li>")
+      if @settings[:juan_toc]
+        label = e['n']
+        @juan_nav.add_child("<li><a href='#{fn}#mulu#{@mulu_count}'>#{label}</a></li>")
+      end
     else
       level = e['level'].to_i
       while @current_nav.size > (level+1)
@@ -750,8 +753,10 @@ eos
     ol = li.add_child('<ol></ol>').first
     @current_nav << ol
     
-    li = @nav_root_ol.add_child("<li><a href='#'>卷目次</a></li>").first
-    @juan_nav = li.add_child('<ol></ol>').first
+    if @settings[:juan_toc]
+      li = @nav_root_ol.add_child("<li><a href='#'>卷目次</a></li>").first
+      @juan_nav = li.add_child('<ol></ol>').first
+    end
     
     @mulu_count = 0
     @main_text = ''
