@@ -510,7 +510,13 @@ eos
   end
 
   def handle_list(e)
-    "<ul>%s</ul>" % traverse(e)
+    doc = Nokogiri::XML::Document.new
+    node = doc.create_element('ul')
+    node.inner_html = traverse(e)
+    if e.key? 'rendition'
+      node['class'] = e['rendition']
+    end
+    to_html(node)
   end
 
   def handle_milestone(e)

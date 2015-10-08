@@ -50,4 +50,8 @@ th, td {
 	padding: 5px;
 	word-wrap: break-word;
 	word-break: break-all;
+	text-indent: 0;
+}
+ul.simple {
+	list-style-type: none;
 }
