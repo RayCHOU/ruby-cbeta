@@ -450,8 +450,8 @@ class CBETA::P5aToHTML
         @pass << false
         s = traverse(e)
         @pass.pop
-        @back[@juan] += "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
-        return "<a class='noteAnchor' href='#n#{n}'></a>"
+        @back[@juan] += "<span class='footnote cb' id='n#{n}'>#{s}</span>\n"
+        return "<a class='noteAnchor cb' href='#n#{n}'></a>"
       when 'rest'
         return ''
       else
@@ -463,12 +463,15 @@ class CBETA::P5aToHTML
       return '' if e['resp'].start_with? 'CBETA'
     end
 
-    if e.has_attribute?('place') && e['place']=='inline'
-      r = traverse(e)
-      return "<span class='doube-line-note'>#{r}</span>"
-    else
-      return traverse(e)
+    r = traverse(e)
+    if e.has_attribute?('place')
+      if e['place']=='inline'
+        r = "<span class='doube-line-note'>#{r}</span>"
+      elsif e['place']=='interlinear'
+        r = "<span class='interlinear-note'>#{r}</span>"
+      end
     end
+    r
   end
 
   def handle_note_orig(e, anchor_type=nil)
@@ -476,18 +479,21 @@ class CBETA::P5aToHTML
     @pass << false
     s = traverse(e)
     @pass.pop
-    @back[@juan] += "<span class='footnote_orig' id='n#{n}'>#{s}</span>\n"
 
-    if @mod_notes.include? n
-      return ''
-    else
-      label = case anchor_type
-      when 'biao' then " data-label='標#{n[-2..-1]}'"
-      when 'ke'   then " data-label='科#{n[-2..-1]}'"
-      else ''
-      end
-      return "<a class='noteAnchor' href='#n#{n}'#{label}></a>"
+    c = @series
+    
+    # 如果 CBETA 沒有修訂，就跟底本的註一樣
+    c += " cb" unless @mod_notes.include? n
+    
+    @back[@juan] += "<span class='footnote #{c}' id='n#{n}'>#{s}</span>\n"
+    
+    label = case anchor_type
+    when 'biao' then " data-label='標#{n[-2..-1]}'"
+    when 'ke'   then " data-label='科#{n[-2..-1]}'"
+    else ''
     end
+    
+    return "<a class='noteAnchor #{c}' href='#n#{n}'#{label}></a>"
   end
 
   def handle_p(e)
@@ -534,39 +540,10 @@ class CBETA::P5aToHTML
     juans.each { |j|
       if j =~ /<juan (\d+)>$/
         juan_no = $1.to_i
-        if @sutra_no.match(/^(T05|T06|T07)n0220/)
-          fn = "#{$1}n0220_%03d.htm" % juan_no
-        else
-          fn = "#{@sutra_no}_%03d.htm" % juan_no
-        end
-        output_path = File.join(@out_folder, fn)
-        fo = File.open(output_path, 'w')
-        open = true
-        s = <<eos
-<html>
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta name="filename" content="#{fn}" />
-  <title>#{@title}</title>
-</head>
-<body>
-<!-- 
-  來源 XML CBETA P5a: https://github.com/cbeta-org/xml-p5a.git
-  轉檔程式: https://rubygems.org/gems/cbeta #{Date.today}
-  說明文件: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_轉_HTML
--->
-<div id='body'>
-eos
-        fo.write(s)
-        fo.write(buf)
-        buf = ''
-      elsif open
-        fo.write(j + "\n</div><!-- end of div[@id='body'] -->\n")
-        fo.write("<div id='back'>\n" + @back[juan_no] + "</div>\n")
-        fo.write('</body></html>')
-        fo.close
-      else
+      elsif juan_no.nil?
         buf = j
+      else
+        write_juan(juan_no, buf+j)
       end
     }
   end
@@ -719,7 +696,13 @@ eos
 
   def read_mod_notes(doc)
     doc.xpath("//note[@type='mod']").each { |e|
-      @mod_notes << e['n']
+      n = e['n']
+      @mod_notes << n
+      
+      # 例 T01n0026_p0506b07, 原註標為 7, CBETA 修訂為 7a, 7b
+      n.match(/[a-z]$/) {
+        @mod_notes << n[0..-2]
+      }
     }
   end
 
@@ -731,6 +714,14 @@ eos
     e = doc.xpath("//titleStmt/title")[0]
     @title = traverse(e, 'txt')
     @title = @title.split()[-1]
+    
+    e = doc.at_xpath("//editionStmt/edition/date")
+    abort "找不到版本日期" if e.nil?
+    @edition_date = e.text.sub(/\$Date: (.*?) \$$/, '\1')
+    
+    e = doc.at_xpath("//projectDesc/p[@lang='zh']")
+    abort "找不到貢獻者" if e.nil?
+    @contributors = e.text
     
     read_mod_notes(doc)
 
@@ -753,6 +744,48 @@ eos
       r += s
     }
     r
+  end
+  
+  def write_juan(juan_no, body)
+    if @sutra_no.match(/^(T05|T06|T07)n0220/)
+      fn = "#{$1}n0220_%03d.htm" % juan_no
+    else
+      fn = "#{@sutra_no}_%03d.htm" % juan_no
+    end
+    
+    html = <<eos
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="filename" content="#{fn}" />
+<title>#{@title}</title>
+</head>
+<body>
+<!-- 
+來源 XML CBETA P5a: https://github.com/cbeta-org/xml-p5a.git
+轉檔程式: https://rubygems.org/gems/cbeta #{Date.today}
+說明文件: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_轉_HTML
+-->
+<div id='body'>
+eos
+    html += body + "\n</div><!-- end of div[@id='body'] -->\n"
+    html += "<div id='back'>\n" + @back[juan_no] + "</div>\n"
+    html += "<div id='cbeta-copyright'><p>\n"
+    
+    orig = @cbeta.get_canon_nickname(@series)
+    v = @vol.sub(/^[A-Z]0*([^0].*)$/, '\1')
+    n = @sutra_no.sub(/^[A-Z]\d{2,3}n0*([^0].*)$/, '\1')
+    html += "【經文資訊】#{orig}第 #{v} 冊 No. #{n} #{@title}<br/>\n"
+    html += "【版本記錄】CBETA 電子佛典 版本日期：#{@edition_date}<br/>\n"    
+    html += "【編輯說明】本資料庫由中華電子佛典協會（CBETA）依#{orig}所編輯<br/>\n"
+    
+    html += "【原始資料】#{@contributors}<br/>\n"
+    html += "【其他事項】本資料庫可自由免費流通，詳細內容請參閱【中華電子佛典協會資料庫版權宣告】\n"
+    html += "</p></div><!-- end of cbeta-copyright -->\n"
+    html += '</body></html>'
+    
+    output_path = File.join(@out_folder, fn)
+    File.write(output_path, html)
   end
 
 end

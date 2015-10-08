@@ -38,10 +38,15 @@ class CBETA
     fn = File.join(File.dirname(__FILE__), 'data/canons.csv')
     text = File.read(fn)
     @canon_abbr = {}
+    @canon_nickname = {}
     CSV.parse(text, :headers => true) do |row|
+      id = row['id']
+      unless row['nickname'].nil?
+        @canon_nickname[id] = row['nickname']
+      end
       next if row['abbreviation'].nil?
     	next if row['abbreviation'].empty?
-      @canon_abbr[row['id']] = row['abbreviation']
+      @canon_abbr[id] = row['abbreviation']
     end
     
     fn = File.join(File.dirname(__FILE__), 'data/categories.json')
@@ -49,6 +54,13 @@ class CBETA
     @categories = JSON.parse(s)
   end
 
+  # @param id [String] 藏經 ID, 例如大正藏的 ID 是 "T"
+  # @return [String] 藏經短名，例如 "大正藏"
+	def get_canon_nickname(id)
+		return nil unless @canon_nickname.key? id
+		@canon_nickname[id]
+  end
+  
   # 取得藏經略符
   #
   # @param id [String] 藏經 ID, 例如大正藏的 ID 是 "T"
