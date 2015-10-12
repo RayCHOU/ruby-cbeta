@@ -106,7 +106,7 @@ class CBETA::P5aToHTML
 
   def handle_byline(e)
     r = '<p class="byline">'
-    r += "<span class='lineInfo'>#{@lb}</span>"
+    r += "<span class='lineInfo' line='#{@lb}'></span>"
     r += traverse(e)
     r + '</p>'
   end
@@ -304,7 +304,8 @@ class CBETA::P5aToHTML
 
     @char_count = 1
     @lb = e['n']
-    line_head = @sutra_no + '_p' + e['n']
+    line_head = @sutra_no + '_p' + @lb
+    
     r = ''
     #if e.parent.name == 'lg' and $lg_row_open
     if @lg_row_open && !@in_l
@@ -498,7 +499,7 @@ class CBETA::P5aToHTML
 
   def handle_p(e)
     r = '<p>'
-    r += "<span class='lineInfo'>#{@lb}</span>"
+    r += "<span class='lineInfo' line='#{@lb}'></span>"
     r += traverse(e)
     r + '</p>'
   end

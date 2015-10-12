@@ -6,6 +6,9 @@ require 'set'
 
 # Convert CBETA XML P5a to simple HTML
 #
+# * HTML 中除了純文字之外，只有行號標記
+# * 每一卷、每個校勘版本都產生一個檔案
+# 
 # CBETA XML P5a 可由此取得: https://github.com/cbeta-git/xml-p5a
 #
 # @example for convert 大正藏第一冊:
@@ -14,6 +17,10 @@ require 'set'
 #   c.convert('T01')
 #
 class CBETA::P5aToSimpleHTML
+  # 內容不輸出的元素
+  PASS=['back', 'teiHeader']
+
+  private_constant :PASS
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param output_root [String] 輸出 Text 路徑
@@ -24,7 +31,7 @@ class CBETA::P5aToSimpleHTML
     @gaijis = CBETA::Gaiji.new
   end
 
-  # 將 CBETA XML P5a 轉為 Text
+  # 將 CBETA XML P5a 轉為 Simple HTML
   #
   # @example for convert 大正藏第一冊:
   #
@@ -364,9 +371,8 @@ class CBETA::P5aToSimpleHTML
         |<head>
         |  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         |</head>
-        |<body>
       END
-      text += to_html(frag) + "</body></html>"
+      text += "<body>" + to_html(frag) + "</body></html>"
 
       fn = ed.sub(/^【(.*?)】$/, '\1')
       fn = "#{fn}.html"
