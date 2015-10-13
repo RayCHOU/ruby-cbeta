@@ -139,7 +139,8 @@ class CBETA::P5aToSimpleHTML
   end
 
   def handle_lb(e)
-    r = "<a id='lb#{e['n']}'/>"
+    @lb = e['n']
+    r = "<a id='lb#{@lb}'/>"
     unless @next_line_buf.empty?
       r += @next_line_buf + "\n"
       @next_line_buf = ''
@@ -161,6 +162,7 @@ class CBETA::P5aToSimpleHTML
     if e['unit'] == 'juan'
       @juan = e['n'].to_i
       r += "<juan #{@juan}>"
+      r += "<a id='lb#{@lb}'/>" unless @lb.nil?
     end
     r
   end
@@ -228,6 +230,7 @@ class CBETA::P5aToSimpleHTML
     @next_line_buf = ''
     @open_divs = []
     @sutra_no = File.basename(xml_fn, ".xml")
+    @lb = nil
 
     text = parse_xml(xml_fn)
    
