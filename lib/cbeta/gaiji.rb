@@ -52,18 +52,27 @@ class CBETA::Gaiji
   end
   
   private
+  
   def char_to_hash(char)
     r = {}
     id = char['id']
+    field_mapping = {
+      'big5' => 'big5',
+      'Character in the Siddham font' => 'char_in_siddham_font',
+      'composition' => 'zzs',
+      'normalized form' => 'normal',
+      'rjchar' => 'rjchar',
+      'Romanized form in CBETA transcription' => 'roman_cbeta',
+      'Romanized form in Unicode transcription' => 'roman'
+    }
     char.xpath('charProp').each do |e|
       prop = e.at('localName').text
-      case prop
-      when 'composition'
-        r['zzs'] = e.at('value').text
-      when 'normalized form'
-        r['normal'] = e.at('value').text
+      v = e.at('value').text
+      if field_mapping.key? prop
+        k = field_mapping[prop]
+        r[k] = v
       else
-        puts "未處理 charProp/localName: #{prop}"
+        puts "未處理 charProp/localName: #{prop}, value: #{v}"
       end
     end
     char.xpath('mapping').each do |e|
@@ -78,6 +87,7 @@ class CBETA::Gaiji
   end
   
   def update_from_p5_file(fn)
+    puts "read #{fn}"
     f = File.open(fn)
     doc = Nokogiri::XML(f)
     f.close

@@ -41,6 +41,11 @@ class CBETA::P5aToText
 
   # 將 CBETA XML P5a 轉為 Text
   #
+  # @example for convert all:
+  #
+  #   x2h = CBETA::P5aToText.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
+  #   x2h.convert
+  #
   # @example for convert 大正藏第一冊:
   #
   #   x2h = CBETA::P5aToText.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
@@ -113,10 +118,10 @@ class CBETA::P5aToText
   end
 
   def convert_all
-    Dir.foreach(@xml_root) { |c|
+    Dir.entries(@xml_root).sort.each do |c|
       next unless c.match(/^[A-Z]$/)
       handle_collection(c)
-    }
+    end
   end
 
   def handle_anchor(e)
@@ -149,10 +154,10 @@ class CBETA::P5aToText
     @series = c
     puts 'handle_collection ' + c
     folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if ['.', '..', '.DS_Store'].include? vol
+    Dir.entries(folder).sort.each do |vol|
+      next if vol.start_with? '.'
       handle_vol(vol)
-    }
+    end
   end
 
   def handle_corr(e)
@@ -369,7 +374,7 @@ class CBETA::P5aToText
     puts "convert sutra #{xml_fn}"
     @dila_note = 0
     @div_count = 0
-    @editions = Set.new ["【CBETA】"]
+    @editions = Set.new [@orig, "【CBETA】"] # 至少有底本跟CBETA兩種版本
     @in_l = false
     @juan = 0
     @lg_row_open = false
@@ -466,8 +471,10 @@ class CBETA::P5aToText
     FileUtils.makedirs @out_vol
     
     source = File.join(@xml_root, @series, vol)
-    Dir[source+"/*"].each { |f|
-      handle_sutra(f)
+    Dir.entries(source).sort.each { |f|
+      next if f.start_with? '.'
+      fn = File.join(source, f)
+      handle_sutra(fn)
     }
   end
 
@@ -475,11 +482,11 @@ class CBETA::P5aToText
     puts "convert volumns: #{v1}..#{v2}"
     @series = v1[0]
     folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
+    Dir.entries(folder).sort.each do |vol|
       next if vol < v1
       next if vol > v2
       handle_vol(vol)
-    }
+    end
   end
 
   def open_xml(fn)
