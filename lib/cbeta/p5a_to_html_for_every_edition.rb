@@ -66,10 +66,10 @@ class CBETA::P5aToHTMLForEveryEdition
   private
 
   def convert_all
-    Dir.foreach(@xml_root) { |c|
+    Dir.entries(@xml_root).sort.each do |c|
       next unless c.match(/^[A-Z]$/)
       handle_collection(c)
-    }
+    end
   end
 
   def handle_anchor(e)
@@ -125,10 +125,10 @@ class CBETA::P5aToHTMLForEveryEdition
     @series = c
     puts 'handle_collection ' + c
     folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if ['.', '..', '.DS_Store'].include? vol
+    Dir.entries(folder).sort.each do |vol|
+      next if vol.start_with? '.'
       handle_vol(vol)
-    }
+    end
   end
 
   def handle_corr(e)
@@ -493,7 +493,7 @@ class CBETA::P5aToHTMLForEveryEdition
 
   def handle_sutra(xml_fn)
     puts "convert sutra #{xml_fn}"
-    @editions = Set.new ["【CBETA】"]
+    @editions = Set.new [@orig, "【CBETA】"] # 至少有底本及 CBETA 兩個版本
     @back = { 0 => '' }
     @char_count = 1
     @dila_note = 0
@@ -594,9 +594,11 @@ class CBETA::P5aToHTMLForEveryEdition
     FileUtils::mkdir_p @out_folder
     
     source = File.join(@xml_root, @series, vol)
-    Dir[source+"/*"].each { |f|
-      handle_sutra(f)
-    }
+    Dir.entries(source).sort.each do |f|
+      next if f.start_with? '.'
+      fn = File.join(source, f)
+      handle_sutra(fn)
+    end
   end
 
   def handle_vols(v1, v2)
