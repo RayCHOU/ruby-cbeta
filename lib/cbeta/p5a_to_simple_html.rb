@@ -69,7 +69,7 @@ class CBETA::P5aToSimpleHTML
   private
 
   def convert_all
-    Dir.foreach(@xml_root) { |c|
+    Dir.entries(@xml_root).sort.each { |c|
       next unless c.match(/^[A-Z]$/)
       handle_collection(c)
     }
@@ -89,8 +89,8 @@ class CBETA::P5aToSimpleHTML
     @series = c
     puts 'handle_collection ' + c
     folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if ['.', '..', '.DS_Store'].include? vol
+    Dir.entries(folder).sort.each { |vol|
+      next if vol.start_with? '.'
       handle_vol(vol)
     }
   end
