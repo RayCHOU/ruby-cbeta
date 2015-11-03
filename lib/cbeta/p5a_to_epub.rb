@@ -169,12 +169,13 @@ class CBETA::P5aToEPUB
     
     title = @title
     book_id = @book_id
+    creator = @author
     builder = GEPUB::Builder.new {
       language 'zh-TW'
       unique_identifier "http://www.cbeta.org/#{book_id}", 'BookID', 'URL'
       title title
 
-      creator 'CBETA'
+      creator creator
 
       contributors 'DILA'
 
@@ -807,6 +808,8 @@ eos
     e = doc.xpath("//titleStmt/title")[0]
     @title = traverse(e, 'txt')
     @title = @title.split()[-1]
+    
+    @author = doc.at_xpath("//titleStmt/author").text
     
     read_mod_notes(doc)
 
