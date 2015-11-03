@@ -90,6 +90,7 @@ class CBETA::P5aToEPUB
   #   c = CBETA::P5aToEPUB.new(TEMP, IMG)
   #   c.convert_folder('/Users/ray/Documents/Projects/D道安/xml-p5a/DA', '/temp/cbeta-epub/DA')
   def convert_folder(input_folder, output_folder)
+    puts "convert folder: #{input_folder} to #{output_folder}"
     @todo = {}
     
     # 先檢視整個資料夾，哪些是要多檔合一
@@ -752,7 +753,7 @@ eos
     @current_nav = [@nav_root_ol]
     
     if @settings[:front_page_title]
-      @nav_root_ol.add_child("<li><a href='readme.xhtml'>編輯說明</a></li>")
+      @nav_root_ol.add_child("<li><a href='front.xhtml'>編輯說明</a></li>")
     end
     
     li = @nav_root_ol.add_child("<li><a href='#'>章節目次</a></li>").first
