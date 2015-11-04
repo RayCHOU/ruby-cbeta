@@ -386,7 +386,7 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_p(e)
-    "<p>%s</p>\n" % traverse(e)
+    "<div class='p'>%s</div>\n" % traverse(e)
   end
 
   def handle_row(e)

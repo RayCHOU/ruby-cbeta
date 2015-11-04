@@ -7,6 +7,7 @@ require 'csv'
 
 class CBETA
   DATA = File.join(File.dirname(__FILE__), 'data')
+  PUNCS = '.[]。，、？「」『』《》＜＞〈〉〔〕［］【】〖〗'
   
   # 將行首資訊轉為引用格式
   #
@@ -21,6 +22,13 @@ class CBETA
       return "#{$1}, no. #{$2}, p. #{$3}, #{$4}"
     }
     nil
+  end
+  
+  def self.open_xml(fn)
+    s = File.read(fn)
+    doc = Nokogiri::XML(s)
+    doc.remove_namespaces!()
+    doc
   end
   
   # 傳入 蘭札體 缺字碼，傳回 Unicode PUA 字元
@@ -100,10 +108,12 @@ class CBETA
   def get_category(book_id)
     @categories[book_id]
   end
+    
 end
 
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
+require 'cbeta/char_freq'
 require 'cbeta/html_to_pdf'
 require 'cbeta/p5a_to_epub'
 require 'cbeta/p5a_to_html'

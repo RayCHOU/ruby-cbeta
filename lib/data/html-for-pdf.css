@@ -1,3 +1,11 @@
+@font-face {
+    font-family: 'Songti';
+    /* src: url('/Library/Fonts/Songti.ttc'); */
+		src: url('/Library/Fonts/华文仿宋.ttf');
+}
+body {
+	font-family: Songti, PMingLiU-ExtB;
+}
 div.lg {
 	display: table;
 }

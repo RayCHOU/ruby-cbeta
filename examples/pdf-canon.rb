@@ -12,10 +12,10 @@ options = {
   graphic_base: '/Users/ray/Documents/Projects/cbeta/images',
 }
 
-# convert one volumn
+# convert whole Taisho canon
 
 c = CBETA::P5aToHTMLForPDF.new(xml_root, html_root, options)
-c.convert('T10')
+c.convert('T')
 
 c = CBETA::HTMLToPDF.new(html_root, pdf_root)
-c.convert('T10')
+c.convert('T')
