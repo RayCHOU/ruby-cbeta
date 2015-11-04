@@ -6,6 +6,8 @@
 require 'csv'
 
 class CBETA
+  DATA = File.join(File.dirname(__FILE__), 'data')
+  
   # 將行首資訊轉為引用格式
   #
   # @param linehead [String] 行首資訊, 例如：T85n2838_p1291a03
@@ -102,9 +104,11 @@ end
 
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
+require 'cbeta/html_to_pdf'
 require 'cbeta/p5a_to_epub'
 require 'cbeta/p5a_to_html'
 require 'cbeta/p5a_to_html_for_every_edition'
+require 'cbeta/p5a_to_html_for_pdf'
 require 'cbeta/p5a_to_simple_html'
 require 'cbeta/p5a_to_text'
 require 'cbeta/p5a_validator'

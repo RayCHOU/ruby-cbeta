@@ -1,0 +1,69 @@
+div.lg {
+	display: table;
+}
+div.lg-cell {
+	display: table-cell;
+}
+div.lg-row {
+	display: table-row;
+}
+div.p {
+	margin-bottom: 20px;
+	line-height: 1.4;
+	text-indent: 2em;
+}
+p.byline {
+	text-align: right;
+}
+p.h1 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+p.h2 {
+	text-indent: 3em;
+	font-weight: bold;
+}
+p.h3 {
+	text-indent: 4em;
+	font-weight: bold;
+}
+p.h4 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+p.h5 {
+	text-indent: 3em;
+	font-weight: bold;
+}
+p.h6 {
+	text-indent: 4em;
+	font-weight: bold;
+}
+p.h7 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+p.h8 {
+	text-indent: 2em;
+	font-weight: bold;
+}
+span.corr {
+	color: red;
+}
+table {
+	border-collapse: collapse;
+}
+table.tt, table.tt tbody, table.tt tbody tr, table.tt tbody tr td {
+	border: none;
+}
+th, td {
+	border: solid;
+	border-width: 1px;
+	padding: 5px;
+	word-wrap: break-word;
+	word-break: break-all;
+	text-indent: 0;
+}
+ul.simple {
+	list-style-type: none;
+}

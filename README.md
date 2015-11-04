@@ -2,21 +2,34 @@
 
 Ruby gem for use CBETA resources
 
-* CBETA XML P5a 轉為 HTML
-* CBETA XML P5a 轉為 EPUB
-* CBETA XML P5a 轉為 純文字
-* CBETA BM 轉 純文字
+* Convert CBETA XML P5a to HTML
+* Convert CBETA XML P5a to EPUB
+* Convert CBETA XML P5a to Text
+* Convert CBETA BM to Text
+* Convert HTML to PDF
 
 # Reqirements
 
-讀取 XML 的各種功能需要 XML parser nokogiri:
+## nokogiri
 
 	gem install nokogiri
 
-如果要使用 P5aToEPUB，需要從 GitHub 安裝 gepub 0.7.0beta3 以上(含)的版本：
+## EPUB
+
+CBETA::P5aToEPUB need gepub 0.7.0beta3 or newer:
 
 	gem install specific_install
 	gem specific_install -l https://github.com/skoji/gepub.git
+
+## PDF
+
+install wicked_pdf
+
+	gem install wicked_pdf
+
+widked_pdf use wkhtmltopdf, download and install wkhtmltopdf 0.12.2.1 from http://wkhtmltopdf.org/downloads.html
+
+Don't use wkhtmltopdf-binary gem 0.9.9.3, PDF file generated from it is not searchabel and not copyable.
 
 # Getting Started
 
