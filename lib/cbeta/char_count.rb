@@ -1,39 +1,24 @@
-class CBETA::CharFrequency
-  # @option opts [Integer] :top
-  def initialize(xml_root, opts={})
+class CBETA::CharCount
+  def initialize(xml_root)
     @xml_root = xml_root
-    @config = {
-      top: 10
-    }
-    @config.merge!(opts)
     @result = {}
-    @current = @result
   end
   
-  def char_freq(canon=nil)
+  def char_count(canon=nil)
     stat_all if canon.nil?
     stat_canon(canon)
-    r = @result.sort_by {|k,v| v}
-    r[(0-@config[:top])..-1].reverse
+    @result
   end
   
   private
-  
-  def count(c)
-    if @current.key? c
-      @current[c] += 1
-    else
-      @current[c] = 1
-    end
-  end
-  
+    
   def handle_node(e)
     return if e.comment?
     return handle_text(e) if e.text?
     return if %w(foreign mulu rdg reg sic).include? e.name
     
     case e.name
-    when 'g'    then count(e['ref'])
+    when 'g'    then @result[@work] += 1
     when 'note' then handle_note(e)
     when 't'    then handle_t(e)
     else traverse(e)
@@ -60,11 +45,8 @@ class CBETA::CharFrequency
 
     # cbeta xml 文字之間會有多餘的換行
     s.gsub!(/[\n\r]/, '')
-
-    s.each_char do |c|
-      next if CBETA::PUNCS.include? c
-      count(c)
-    end
+    
+    @result[@work] += s.size
   end
       
   def stat_all
@@ -78,10 +60,6 @@ class CBETA::CharFrequency
   def stat_canon(canon)
     return if canon.nil?
     puts 'stat canon: ' + canon
-    if @config[:group_by] == 'canon'
-      @result[canon] = {}
-      @current = @result[canon]
-    end
     folder = File.join(@xml_root, canon)
     Dir.entries(folder).sort.each do |vol|
       next if vol.start_with? '.'
@@ -91,16 +69,14 @@ class CBETA::CharFrequency
   end
   
   def stat_file(fn)
-    if @config[:group_by] == 'work'
-      work = File.basename(fn, '.xml')
-      work.sub!(/^([A-Z])\d{2,3}n(.*)$/, '\1\2')
-      work = 'T0220' if work.start_with?('T0220')
-      puts "stat work: #{work}"
-      @result[work] = {}
-      @current = @result[work]
-    else
-      puts "stat file: #{fn}"
+    @work = File.basename(fn, '.xml')
+    @work.sub!(/^([A-Z])\d{2,3}n(.*)$/, '\1\2')
+    @work = 'T0220' if @work.start_with?('T0220')
+    unless @result.key? @work
+      puts "stat work: #{@work}"
+      @result[@work] = 0 
     end
+    
     doc = CBETA.open_xml(fn)
     body = doc.at_xpath('/TEI/text/body')
     traverse(body)

@@ -113,6 +113,7 @@ end
 
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
+require 'cbeta/char_count'
 require 'cbeta/char_freq'
 require 'cbeta/html_to_pdf'
 require 'cbeta/p5a_to_epub'
