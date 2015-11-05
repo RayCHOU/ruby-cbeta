@@ -70,6 +70,29 @@ class CBETA::P5aToHTMLForPDF
   end
 
   private
+  
+  def before_parse_xml(xml_fn)
+    @div_count = 0
+    @in_l = false
+    @lg_row_open = false
+    @t_buf1 = []
+    @t_buf2 = []
+    @open_divs = []
+    @sutra_no = File.basename(xml_fn, ".xml")
+    
+    @output_folder_sutra = File.join(@out_folder, @sutra_no)
+    FileUtils.mkdir_p(@output_folder_sutra) unless Dir.exist? @output_folder_sutra
+    
+    src = File.join(CBETA::DATA, 'html-for-pdf.css')
+    dest = File.join(@output_folder_sutra, 'html-for-pdf.css')
+    FileUtils.copy(src, dest)
+    
+    @nav_doc = Nokogiri::XML('<ul></ul>')
+    @nav_doc.remove_namespaces!()
+    @nav_root = @nav_doc.at_xpath('/ul')
+    @current_nav = [@nav_root]
+    @mulu_count = 0
+  end
 
   def convert_all
     Dir.foreach(@xml_root) { |c|
@@ -133,6 +156,10 @@ class CBETA::P5aToHTMLForPDF
     end
   end
 
+  def handle_doc_number(e)
+    "<p>%s</p>" % traverse(e)
+  end
+  
   def handle_figure(e)
     "<div class='figure'>%s</div>" % traverse(e)
   end
@@ -162,8 +189,6 @@ class CBETA::P5aToHTMLForPDF
         return zzs
       end
     end
-
-    @char_count += 1
 
     if gid.start_with?('SD')
       case gid
@@ -217,7 +242,11 @@ class CBETA::P5aToHTMLForPDF
       return traverse(e)
     else
       i = @open_divs.size
-      return "<p class='h#{i}'>%s</p>" % traverse(e)
+      if i < 6
+        return "<h#{i}>%s</h#{i}>" % traverse(e)
+      else
+        return "<p class='h#{i}'>%s</p>" % traverse(e)
+      end
     end
   end
 
@@ -317,7 +346,18 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_mulu(e)
-    ''
+    return '' if e['type']=='卷'
+    @mulu_count += 1
+    level = e['level'].to_i
+    while @current_nav.size > level
+      @current_nav.pop
+    end
+  
+    label = traverse(e, 'txt')
+    li = @current_nav.last.add_child("<li><a href='#mulu#{@mulu_count}'>#{label}</a></li>").first
+    ul = li.add_child('<ul></ul>').first
+    @current_nav << ul
+    "<a id='mulu#{@mulu_count}' />"
   end
 
   def handle_node(e, mode)
@@ -330,6 +370,7 @@ class CBETA::P5aToHTMLForPDF
     when 'byline'    then handle_byline(e)
     when 'cell'      then handle_cell(e)
     when 'corr'      then handle_corr(e)
+    when 'docNumber' then handle_doc_number(e)
     when 'div'       then handle_div(e)
     when 'figure'    then handle_figure(e)
     when 'foreign'   then ''
@@ -399,33 +440,26 @@ class CBETA::P5aToHTMLForPDF
 
   def handle_sutra(xml_fn)
     puts "convert sutra #{xml_fn}"
-    @back = { 0 => '' }
-    @char_count = 1
-    @dila_note = 0
-    @div_count = 0
-    @in_l = false
-    @juan = 0
-    @lg_row_open = false
-    @t_buf1 = []
-    @t_buf2 = []
-    @open_divs = []
-    @sutra_no = File.basename(xml_fn, ".xml")
     
-    @output_folder_sutra = File.join(@out_folder, @sutra_no)
-    FileUtils.mkdir_p(@output_folder_sutra) unless Dir.exist? @output_folder_sutra
-    
-    src = File.join(CBETA::DATA, 'html-for-pdf.css')
-    dest = File.join(@output_folder_sutra, 'html-for-pdf.css')
-    FileUtils.copy(src, dest)
+    before_parse_xml(xml_fn)
 
     text = parse_xml(xml_fn)
+    toc = to_html(@nav_root)
+    toc.gsub!('<ul/>', '')
+    
     text = "
 <html>
 <head>
   <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
   <link rel=stylesheet type='text/css' href='html-for-pdf.css'>
 </head>
-<body>#{text}</body>
+<body>
+  <p class='title'>#{@title}</p>
+  <p class='author'>#{@author}</p>
+  <h1>目次</h1>
+  #{toc}
+  #{text}
+</body>
 </html>"
 
     fn = File.join(@output_folder_sutra, 'main.htm')
@@ -470,7 +504,7 @@ class CBETA::P5aToHTMLForPDF
 
     # cbeta xml 文字之間會有多餘的換行
     r = s.gsub(/[\n\r]/, '')
-
+    
     # 把 & 轉為 &amp;
     r = CGI.escapeHTML(r)
 
@@ -531,6 +565,8 @@ class CBETA::P5aToHTMLForPDF
     e = doc.xpath("//titleStmt/title")[0]
     @title = traverse(e, 'txt')
     @title = @title.split()[-1]
+    
+    @author = doc.at_xpath("//titleStmt/author").text
     
     e = doc.at_xpath("//editionStmt/edition/date")
     abort "找不到版本日期" if e.nil?

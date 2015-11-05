@@ -1,10 +1,17 @@
 @font-face {
-    font-family: 'Songti';
-    /* src: url('/Library/Fonts/Songti.ttc'); */
-		src: url('/Library/Fonts/华文仿宋.ttf');
+    font-family: extb;
+    font-style: normal;
+    font-weight: normal;
+    src: url("/Library/Fonts/Microsoft/PMingLiU-ExtB.ttf")
+}
+@font-face {
+    font-family: PMingLiU;
+    font-style: normal;
+    font-weight: normal;
+    src: url("/Library/Fonts/Microsoft/PMingLiU.ttf")
 }
 body {
-	font-family: Songti, PMingLiU-ExtB;
+	font-family: PMingLiU, extb;
 }
 div.lg {
 	display: table;
@@ -19,6 +26,10 @@ div.p {
 	margin-bottom: 20px;
 	line-height: 1.4;
 	text-indent: 2em;
+}
+p.author {
+	font-size: 1.6em;
+	text-align: center;
 }
 p.byline {
 	text-align: right;
@@ -55,8 +66,15 @@ p.h8 {
 	text-indent: 2em;
 	font-weight: bold;
 }
+p.title {
+	font-size: 2em;
+	text-align: center;
+}
 span.corr {
 	color: red;
+}
+span.extb {
+	font-family: extb;
 }
 table {
 	border-collapse: collapse;

@@ -1,11 +1,16 @@
-require 'wicked_pdf'
-
 class CBETA::HTMLToPDF
   # @param input [String] folder of source HTML, HTML can be produced by CBETA::P5aToHTMLForPDF.
   # @param output [String] output folder
-  def initialize(input, output)
+  # @param converter [String] shell command to convert HTML to PDF
+  #   * suggestion: http://www.princexml.com/
+  #   * wkhtmltopdf has font problem to display unicode extb characters
+  #
+  # @example
+  #   c = CBETA::HTMLToPDF.new('/temp/cbeta-html', '/temp/cbeta-pdf', "prince %{in} -o %{out}")
+  def initialize(input, output, converter)
     @input = input
     @output = output
+    @converter = converter
   end
   
   # Convert CBETA HTML to PDF
@@ -55,11 +60,8 @@ class CBETA::HTMLToPDF
   
   def convert_file(html_fn, pdf_fn)
     puts "convert file: #{html_fn} to #{pdf_fn}"
-    pdf = WickedPdf.new.pdf_from_html_file(html_fn)
-
-    File.open(pdf_fn, 'wb') do |file|
-      file << pdf
-    end
+    cmd = @converter % { in: html_fn, out: pdf_fn}
+    `#{cmd}`
   end
   
   def convert_vol(arg)
