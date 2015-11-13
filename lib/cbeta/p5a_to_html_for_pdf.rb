@@ -4,6 +4,7 @@ require 'fileutils'
 require 'json'
 require 'nokogiri'
 require 'set'
+require 'erb'
 
 # Convert CBETA XML P5a to HTML for PDF
 #
@@ -23,6 +24,10 @@ class CBETA::P5aToHTMLForPDF
   #   * graphic_base/figures: 插圖圖檔位置
   #   * graphic_base/sd-gif: images for Siddham (悉曇字)
   #   * graphic_base/rj-gif: images for Ranjana (蘭札體)
+  # @option opts [String] :front_page 內文前可以加一段 HTML，例如「編輯說明」
+  # @option opts [String] :front_page_title 加在目錄的 front_page 標題
+  # @option opts [String] :back_page 內文後可以加一段 HTML，例如「版權聲明」
+  # @option opts [String] :back_page_title 加在目錄的 back_page 標題
   def initialize(xml_root, out_root, opts={})
     @config = {
     }
@@ -91,7 +96,12 @@ class CBETA::P5aToHTMLForPDF
     @nav_doc.remove_namespaces!()
     @nav_root = @nav_doc.at_xpath('/ul')
     @current_nav = [@nav_root]
-    @mulu_count = 0
+    @mulu_count = 0    
+    
+    if @config[:front_page_title]
+      s = @config[:front_page_title]
+      @nav_root.add_child("<li><a href='#front'>#{s}</a></li>")
+    end    
   end
 
   def convert_all
@@ -142,7 +152,7 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_corr(e)
-    traverse(e)
+    "<span class='corr'>%s</span>" % traverse(e)
   end
 
   def handle_div(e)
@@ -165,17 +175,9 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_g(e, mode)
-    # if 有 <mapping type="unicode">
-    #   if 不在 Unicode Extension C, D, E 範圍裡
-    #     直接採用
-    #   else
-    #     預設呈現 unicode, 但仍包缺字資訊，供點選開 popup
-    # else if 有 <mapping type="normal_unicode">
-    #   預設呈現 normal_unicode, 但仍包缺字資訊，供點選開 popup
-    # else if 有 normalized form
-    #   預設呈現 normalized form, 但仍包缺字資訊，供點選開 popup
-    # else
-    #   預設呈現組字式, 但仍包缺字資訊，供點選開 popup
+    # 悉曇字、蘭札體 使用圖檔
+    # 如果有對應的 unicode 且不在 Unicode Extension C, D, E 範圍裡，直接採用 unicode
+    # 呈現組字式
     gid = e['ref'][1..-1]
     g = @gaijis[gid]
     abort "Line:#{__LINE__} 無缺字資料:#{gid}" if g.nil?
@@ -213,13 +215,11 @@ class CBETA::P5aToHTMLForPDF
     end
    
     if g.has_key?('unicode')
-      if @unicode1.include?(g['unicode'])
+      # 如果不在 unicode ext-C, ext-D, ext-E 範圍內
+      unless (0x2A700..0x2CEAF).include? g['unicode'].hex
         return g['unicode-char'] # 直接採用 unicode
       end
     end
-
-    return g['normal_unicode'] if g.has_key?('normal_unicode')
-    return g['normal'] if g.has_key?('normal')
 
     zzs
   end
@@ -242,8 +242,8 @@ class CBETA::P5aToHTMLForPDF
       return traverse(e)
     else
       i = @open_divs.size
-      if i < 6
-        return "<h#{i}>%s</h#{i}>" % traverse(e)
+      if i <= 6
+        return "<p class='h#{i}'>%s</p>" % traverse(e)
       else
         return "<p class='h#{i}'>%s</p>" % traverse(e)
       end
@@ -268,9 +268,11 @@ class CBETA::P5aToHTMLForPDF
     doc = Nokogiri::XML::Document.new
     cell = doc.create_element('div')
     cell['class'] = 'lg-cell'
-    cell.inner_html = traverse(e)
+    cell.inner_html = traverse(e) + '　'
     
-    if @first_l
+    if e.key? 'rend'
+      cell['style'] = e['rend']
+    elsif @first_l
       parent = e.parent()
       if parent.has_attribute?('rend')
         indent = parent['rend'].scan(/text-indent:[^:]*/)
@@ -278,8 +280,8 @@ class CBETA::P5aToHTMLForPDF
           cell['style'] = indent[0]
         end
       end
-      @first_l = false
     end
+    @first_l = false
     r = to_html(cell)
     
     unless @lg_row_open
@@ -309,7 +311,14 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_lem(e)
-    traverse(e)
+    r = ''
+    w = e['wit']
+    if w.include? 'CBETA' and not w.include? @orig
+      r = "<span class='corr'>%s</span>" % traverse(e)
+    else
+      r = traverse(e)
+    end
+    r
   end
 
   def handle_lg(e)
@@ -357,7 +366,9 @@ class CBETA::P5aToHTMLForPDF
     li = @current_nav.last.add_child("<li><a href='#mulu#{@mulu_count}'>#{label}</a></li>").first
     ul = li.add_child('<ul></ul>').first
     @current_nav << ul
-    "<a id='mulu#{@mulu_count}' />"
+    
+    # mulu 標記裡要有東西，prince 才會產生 pdf bookmark
+    "<a id='mulu#{@mulu_count}'></a><mulu#{level} title='#{label}'>&nbsp;</mulu#{level}>"
   end
 
   def handle_node(e, mode)
@@ -443,27 +454,39 @@ class CBETA::P5aToHTMLForPDF
     
     before_parse_xml(xml_fn)
 
-    text = parse_xml(xml_fn)
-    toc = to_html(@nav_root)
-    toc.gsub!('<ul/>', '')
+    @text = parse_xml(xml_fn)
     
-    text = "
-<html>
-<head>
-  <meta http-equiv='Content-Type' content='text/html; charset=utf-8' />
-  <link rel=stylesheet type='text/css' href='html-for-pdf.css'>
-</head>
-<body>
-  <p class='title'>#{@title}</p>
-  <p class='author'>#{@author}</p>
-  <h1>目次</h1>
-  #{toc}
-  #{text}
-</body>
-</html>"
+    # 目次
+    if @config[:back_page_title]
+      s = @config[:back_page_title]
+      @nav_root.add_child("<li><a href='#back'>#{s}</a></li>")
+    end
+    @toc = to_html(@nav_root)
+    @toc.gsub!('<ul/>', '')
+    
+    if @config.key? :front_page
+      s = File.read(@config[:front_page])
+      @front = "<div id='front'>#{s}</div>"
+    end
+    
+    if @config.key? :back_page
+      s = File.read(@config[:back_page])
+      @back = "<div id='back'>#{s}</div>"
+    end
+
+    fn = File.join(CBETA::DATA, 'pdf-template.htm')
+    template = File.read(fn)
+    output = template % {
+      title: @title,
+      author: @author,
+      toc: @toc,
+      front: @front,
+      text: @text,
+      back: @back
+    }
 
     fn = File.join(@output_folder_sutra, 'main.htm')
-    File.write(fn, text)
+    File.write(fn, output)
   end
 
   def handle_t(e)

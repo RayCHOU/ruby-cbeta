@@ -13,7 +13,11 @@ options = {
   #   figures/
   #   sd-gif/
   #   rj-gif/
-  graphic_base: '/Users/ray/Documents/Projects/cbeta/images'  
+  graphic_base: '/Users/ray/Documents/Projects/cbeta/images',
+  front_page: '/Users/ray/Dropbox/CBETA/pdf/readme.htm',
+  front_page_title: '編輯說明',
+  back_page: '/Users/ray/Dropbox/CBETA/pdf/donate.htm',
+  back_page_title: '贊助資訊',  
 }
 
 # convert one volumn

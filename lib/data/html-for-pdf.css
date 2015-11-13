@@ -10,11 +10,15 @@
     font-weight: normal;
     src: url("/Library/Fonts/Microsoft/PMingLiU.ttf")
 }
+a {
+    text-decoration: none;
+}
 body {
 	font-family: PMingLiU, extb;
 }
 div.lg {
 	display: table;
+	margin-left: 1em;
 }
 div.lg-cell {
 	display: table-cell;
@@ -23,9 +27,68 @@ div.lg-row {
 	display: table-row;
 }
 div.p {
-	margin-bottom: 20px;
+	margin-bottom: 1em;
+	margin-top: 1em;
 	line-height: 1.4;
-	text-indent: 2em;
+}
+p.h1 {
+	margin-left: 1em;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+p.h2 {
+	margin-left: 2em;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+p.h3 {
+	margin-left: 3em;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+p.h4 {
+	margin-left: 2em;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+p.h5 {
+	margin-left: 3em;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+p.h6 {
+	margin-left: 4em;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+
+/* 
+  mulu 標記是用來產生 pdf bookmark 用的 
+  參考： http://www.princexml.com/doc/pdf-bookmarks/
+*/
+mulu1 {
+    prince-bookmark-level: 1;
+    prince-bookmark-label: attr(title)
+}
+mulu2 {
+    prince-bookmark-level: 2;
+    prince-bookmark-label: attr(title)
+}
+mulu3 {
+    prince-bookmark-level: 3;
+    prince-bookmark-label: attr(title)
+}
+mulu4 {
+    prince-bookmark-level: 4;
+    prince-bookmark-label: attr(title)
+}
+mulu5 {
+    prince-bookmark-level: 5;
+    prince-bookmark-label: attr(title)
+}
+mulu6 {
+    prince-bookmark-level: 6;
+    prince-bookmark-label: attr(title)
 }
 p.author {
 	font-size: 1.6em;
@@ -33,30 +96,6 @@ p.author {
 }
 p.byline {
 	text-align: right;
-}
-p.h1 {
-	text-indent: 2em;
-	font-weight: bold;
-}
-p.h2 {
-	text-indent: 3em;
-	font-weight: bold;
-}
-p.h3 {
-	text-indent: 4em;
-	font-weight: bold;
-}
-p.h4 {
-	text-indent: 2em;
-	font-weight: bold;
-}
-p.h5 {
-	text-indent: 3em;
-	font-weight: bold;
-}
-p.h6 {
-	text-indent: 4em;
-	font-weight: bold;
 }
 p.h7 {
 	text-indent: 2em;

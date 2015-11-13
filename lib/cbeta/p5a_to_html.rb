@@ -278,7 +278,9 @@ class CBETA::P5aToHTML
     cell['class'] = 'lg-cell'
     cell.inner_html = traverse(e)
     
-    if @first_l
+    if e.key? 'rend'
+      cell['style'] = e['rend']
+    elsif @first_l
       parent = e.parent()
       if parent.has_attribute?('rend')
         indent = parent['rend'].scan(/text-indent:[^:]*/)
@@ -286,8 +288,9 @@ class CBETA::P5aToHTML
           cell['style'] = indent[0]
         end
       end
-      @first_l = false
     end
+    @first_l = false
+    
     r = to_html(cell)
     
     unless @lg_row_open
