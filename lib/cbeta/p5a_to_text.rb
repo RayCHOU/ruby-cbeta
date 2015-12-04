@@ -531,6 +531,9 @@ class CBETA::P5aToText
       if ed == @orig
         fn = "#{ed2}-orig.txt"
       else
+        unless ed2 == 'CBETA'
+          ed2 = @orig.sub(/^【(.*?)】$/, '\1') + '→' + ed2
+        end
         fn = "#{ed2}.txt"
       end
       output_path = File.join(folder, fn)
