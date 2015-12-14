@@ -31,6 +31,11 @@ class CBETA
     doc
   end
   
+  # 傳入 缺字碼，傳回 Unicode PUA 字元
+  def self.pua(gid)
+    [0xf0000 + gid[2..-1].to_i].pack 'U'
+  end
+  
   # 傳入 蘭札體 缺字碼，傳回 Unicode PUA 字元
   def self.ranjana_pua(gid)
     i = 0x10000 + gid[-4..-1].hex

@@ -25,13 +25,17 @@ class CBETA::P5aToText
   # @param format [String] 輸出格式，例：'app'
   # @option opts [String] :format 輸出格式，例：'app'，預設是 normal
   # @option opts [String] :encoding 輸出編碼，預設 'UTF-8'
+  # @option opts [String] :gaiji 缺字處理方式，預設 'default'
+  #   * 'PUA': 缺字一律使用 Unicode PUA
+  #   * 'default': 優先使用通用字
   def initialize(xml_root, output_root, opts={})
     @xml_root = xml_root
     @output_root = output_root
     
     @settings = {
       format: nil,
-      encoding: 'UTF-8'
+      encoding: 'UTF-8',
+      gaiji: 'default'
     }
     @settings.merge!(opts)
     
@@ -192,6 +196,13 @@ class CBETA::P5aToText
     # else
     #   Unicode PUA
     gid = e['ref'][1..-1]
+    
+    if @settings[:gaiji] == 'PUA'
+      return CBETA.siddham_pua(gid) if gid.start_with?('SD') # 悉曇字
+      return CBETA.ranjana_pua(gid) if gid.start_with?('RJ') # 蘭札體
+      return CBETA.pua(gid)
+    end
+    
     g = @gaijis[gid]
     abort "Line:#{__LINE__} 無缺字資料:#{gid}" if g.nil?
     zzs = g['zzs']

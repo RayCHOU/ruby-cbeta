@@ -224,6 +224,9 @@ class CBETA::P5aToHTMLForEveryEdition
     unless @back[@juan].include?(href)
       @back[@juan] += "<span id='#{gid}' class='gaijiInfo' figure_url='#{href}' zzs='#{zzs}' nor='#{nor}'>#{default}</span>\n"
     end
+    unless @back_orig[@juan].include?(href)
+      @back_orig[@juan] += "<span id='#{gid}' class='gaijiInfo' figure_url='#{href}' zzs='#{zzs}' nor='#{nor}'>#{default}</span>\n"
+    end
     "<a class='gaijiAnchor' href='##{gid}'>#{default}</a>"
   end
 
@@ -350,6 +353,9 @@ class CBETA::P5aToHTMLForEveryEdition
       r += "</div>" * @open_divs.size  # 如果有 div 跨卷，要先結束, ex: T55n2154, p. 680a29, 跨 19, 20 兩卷
       @juan = e['n'].to_i
       @back[@juan] = @back[0]
+      @back_orig[@juan] = @back_orig[0]
+      @notes_mod[@juan] = {}
+      @notes_orig[@juan] = {}
       r += "<juan #{@juan}>"
       @open_divs.each { |d|
         r += "<div class='div-#{d['type']}'>"
@@ -425,7 +431,8 @@ class CBETA::P5aToHTMLForEveryEdition
         @pass << false
         s = traverse(e)
         @pass.pop
-        @back[@juan] += "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
+        #@back[@juan] = "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
+        @notes_mod[@juan][n] = s
         return "<a class='noteAnchor' href='#n#{n}'></a>"
       when 'rest'
         return ''
@@ -451,7 +458,8 @@ class CBETA::P5aToHTMLForEveryEdition
     @pass << false
     s = traverse(e)
     @pass.pop
-    @back[@juan] += "<span class='footnote_orig' id='n#{n}'>#{s}</span>\n"
+    @notes_orig[@juan][n] = s
+    @notes_mod[@juan][n] = s
 
     if @mod_notes.include? n
       return ''
@@ -495,6 +503,7 @@ class CBETA::P5aToHTMLForEveryEdition
     puts "convert sutra #{xml_fn}"
     @editions = Set.new [@orig, "【CBETA】"] # 至少有底本及 CBETA 兩個版本
     @back = { 0 => '' }
+    @back_orig = { 0 => '' }
     @char_count = 1
     @dila_note = 0
     @div_count = 0
@@ -503,6 +512,8 @@ class CBETA::P5aToHTMLForEveryEdition
     @lg_row_open = false
     @mod_notes = Set.new
     @next_line_buf = ''
+    @notes_mod = {}
+    @notes_orig = {}
     @open_divs = []
     @sutra_no = File.basename(xml_fn, ".xml")
 
@@ -611,6 +622,23 @@ class CBETA::P5aToHTMLForEveryEdition
       handle_vol(vol)
     }
   end
+  
+  def html_back(juan_no, ed)
+    r = ''
+    case ed
+    when '【CBETA】'
+      r = @back[juan_no]
+      @notes_mod[juan_no].each_pair do |k,v|
+        r += "<span class='footnote_cb' id='n#{k}'>#{v}</span>\n"
+      end
+    when @orig
+      r = @back_orig[juan_no]
+      @notes_orig[juan_no].each_pair do |k,v|
+        r += "<span class='footnote_orig' id='n#{k}'>#{v}</span>\n"
+      end
+    end
+    r
+  end
 
   def linehead_exist_in_cbeta(s)
     @xml_root
@@ -701,6 +729,8 @@ class CBETA::P5aToHTMLForEveryEdition
         node.remove
       end
       text = frag.to_html
+      
+      back = html_back(juan_no, ed)
 
       fn = ed.sub(/^【(.*)】$/, '\1') + '.htm'
       output_path = File.join(folder, fn)
@@ -712,7 +742,10 @@ class CBETA::P5aToHTMLForEveryEdition
   <title>#{@title}</title>
 </head>
 <body>
-#{text}
+  #{text}
+  <div id='back'>
+    #{back}
+  </div>
 </body></html>
 eos
       File.write(output_path, text)

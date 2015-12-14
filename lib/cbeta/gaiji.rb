@@ -6,6 +6,14 @@ class CBETA::Gaiji
   def initialize()
     fn = File.join(File.dirname(__FILE__), '../data/gaiji.json')
     @gaijis = JSON.parse(File.read(fn))
+    
+    @zzs = {}
+    @gaijis.each do |k,v|
+      if v.key? 'zzs'
+        zzs = v['zzs']
+        @zzs[zzs] = k
+      end
+    end
   end
 
   # 取得缺字資訊
@@ -49,6 +57,13 @@ class CBETA::Gaiji
     update_from_p5_folder(p5_folder)
     s = JSON.pretty_generate(@gaijis)
     File.write(output_json_filename, s)
+  end
+  
+  # 傳入 組字式，取得 PUA
+  def zzs2pua(zzs)
+    return nil unless @zzs.key? zzs
+    gid = @zzs[zzs]
+    CBETA.pua(gid)
   end
   
   private
