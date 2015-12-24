@@ -48,9 +48,9 @@ class CBETA::HTMLToPDF
     end
   end
   
-  def handle_collection(c)
+  def convert_collection(c)
     @series = c
-    puts 'handle_collection ' + c
+    puts 'convert_collection ' + c
     folder = File.join(@input, @series)
     Dir.foreach(folder) { |vol|
       next if ['.', '..', '.DS_Store'].include? vol

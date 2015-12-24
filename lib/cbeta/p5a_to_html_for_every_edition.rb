@@ -64,12 +64,38 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   private
+  
+  def before_parse_xml(xml_fn)
+    @back = { 0 => '' }
+    @back_orig = { 0 => '' }
+    @char_count = 1
+    @dila_note = 0
+    @div_count = 0
+    @in_l = false
+    @juan = 0
+    @lg_row_open = false
+    @mod_notes = Set.new
+    @next_line_buf = ''
+    @notes_mod = {}
+    @notes_orig = {}
+    @open_divs = []
+    @sutra_no = File.basename(xml_fn, ".xml")
+  end
 
   def convert_all
     Dir.entries(@xml_root).sort.each do |c|
       next unless c.match(/^[A-Z]$/)
       handle_collection(c)
     end
+  end
+  
+  def get_editions(doc)
+    r = Set.new [@orig, "【CBETA】"] # 至少有底本及 CBETA 兩個版本
+    doc.xpath('//lem|//rdg').each do |e|
+      w = e['wit'].scan(/【.*?】/)
+      r.merge w
+    end
+    r
   end
 
   def handle_anchor(e)
@@ -309,12 +335,17 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   def handle_lem(e)
-    w = e['wit'].scan(/【.*?】/)
-    @editions.merge w
-    w = w.join(' ')
+    # 沒有 rdg 的版本，用字同 lem
+    editions = Set.new @editions
+    e.xpath('./following-sibling::rdg').each do |rdg|
+      rdg['wit'].scan(/【.*?】/).each do |w|
+        editions.delete w
+      end
+    end
+    w = editions.to_a.join(' ')
     
     r = traverse(e)
-    "<r w='#{w}' l='#{@lb}' w='#{@char_count}'>#{r}</r>"
+    "<r w='#{w}' l='#{@lb}'>#{r}</r>"
   end
 
   def handle_lg(e)
@@ -433,7 +464,7 @@ class CBETA::P5aToHTMLForEveryEdition
         @pass.pop
         #@back[@juan] = "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
         @notes_mod[@juan][n] = s
-        return "<a class='noteAnchor' href='#n#{n}'></a>"
+        return "<r w='【CBETA】'><a class='noteAnchor' href='#n#{n}'></a></r>"
       when 'rest'
         return ''
       else
@@ -461,16 +492,18 @@ class CBETA::P5aToHTMLForEveryEdition
     @notes_orig[@juan][n] = s
     @notes_mod[@juan][n] = s
 
-    if @mod_notes.include? n
-      return ''
-    else
-      label = case anchor_type
-      when 'biao' then " data-label='標#{n[-2..-1]}'"
-      when 'ke'   then " data-label='科#{n[-2..-1]}'"
-      else ''
-      end
-      return "<a class='noteAnchor' href='#n#{n}'#{label}></a>"
+    label = case anchor_type
+    when 'biao' then " data-label='標#{n[-2..-1]}'"
+    when 'ke'   then " data-label='科#{n[-2..-1]}'"
+    else ''
     end
+    s = "<a class='noteAnchor' href='#n#{n}'#{label}></a>"
+    r = "<r w='#{@orig}'>#{s}</r>"
+    
+    unless @mod_notes.include? n
+      r += "<r w='【CBETA】'>#{s}</r>"
+    end
+    r
   end
 
   def handle_p(e)
@@ -483,7 +516,6 @@ class CBETA::P5aToHTMLForEveryEdition
   def handle_rdg(e)
     r = traverse(e)
     w = e['wit'].scan(/【.*?】/)
-    @editions.merge w
     "<r w='#{e['wit']}' l='#{@lb}' w='#{@char_count}'>#{r}</r>"
   end
 
@@ -501,21 +533,8 @@ class CBETA::P5aToHTMLForEveryEdition
 
   def handle_sutra(xml_fn)
     puts "convert sutra #{xml_fn}"
-    @editions = Set.new [@orig, "【CBETA】"] # 至少有底本及 CBETA 兩個版本
-    @back = { 0 => '' }
-    @back_orig = { 0 => '' }
-    @char_count = 1
-    @dila_note = 0
-    @div_count = 0
-    @in_l = false
-    @juan = 0
-    @lg_row_open = false
-    @mod_notes = Set.new
-    @next_line_buf = ''
-    @notes_mod = {}
-    @notes_orig = {}
-    @open_divs = []
-    @sutra_no = File.basename(xml_fn, ".xml")
+    
+    before_parse_xml(xml_fn)
 
     text = parse_xml(xml_fn)
 
@@ -598,6 +617,7 @@ class CBETA::P5aToHTMLForEveryEdition
 
     @orig = @cbeta.get_canon_symbol(vol[0])
     abort "未處理底本" if @orig.nil?
+    @orig_short = @orig.sub(/^【(.*)】$/, '\1')
 
     @vol = vol
     @series = vol[0]
@@ -691,6 +711,8 @@ class CBETA::P5aToHTMLForEveryEdition
     root = doc.root()
     body = root.xpath("text/body")[0]
     @pass = [true]
+    
+    @editions = get_editions(doc)
 
     text = traverse(body)
     text
@@ -723,7 +745,7 @@ class CBETA::P5aToHTMLForEveryEdition
     @editions.each do |ed|
       frag = Nokogiri::HTML.fragment("<div id='body'>#{html}</div>")
       frag.search("r").each do |node|
-        if node['w'] == ed
+        if node['w'].include? ed
           node.add_previous_sibling node.inner_html
         end
         node.remove
@@ -732,7 +754,11 @@ class CBETA::P5aToHTMLForEveryEdition
       
       back = html_back(juan_no, ed)
 
-      fn = ed.sub(/^【(.*)】$/, '\1') + '.htm'
+      fn = ed.sub(/^【(.*)】$/, '\1')
+      if fn != 'CBETA' and fn != @orig_short
+        fn = @orig_short + '→' + fn
+      end
+      fn += '.htm'
       output_path = File.join(folder, fn)
       text = <<eos
 <html>
