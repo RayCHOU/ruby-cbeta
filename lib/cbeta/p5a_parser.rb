@@ -22,11 +22,12 @@ class CBETA::P5aParser
   # @param e [Nokogiri::XML::Element]
   # @param mode [String] 'html' or 'text', default value: 'html'
   # @return [Hash]
-  #   * :content [String] 要放在本文中的文字, 如果 mode=='html', 那麼本文文字會包含 footnote anchor
-  #   * :footnote_text [String] 要放在 footnote 的文字
-  #   * :footnote_resp [String]
-  #     * 'orig': 表示這個註解是底本的註
-  #     * 'CBETA': 表示這個註解是 CBETA 修訂過的註  
+  #   回傳
+  #     * :content [String] 要放在本文中的文字, 如果 mode=='html', 那麼本文文字會包含 footnote anchor
+  #     * :footnote_text [String] 要放在 footnote 的文字
+  #     * :footnote_resp [String]
+  #       * 'orig': 表示這個註解是底本的註
+  #       * 'CBETA': 表示這個註解是 CBETA 修訂過的註  
   def handle_note(e, mode='html')
     r = {
       content: '',

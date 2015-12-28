@@ -35,7 +35,7 @@ class CBETA::HTMLToPDF
     return convert_all if target.nil?
 
     arg = target.upcase
-    if arg.size == 1
+    if arg.size <= 2
       convert_collection(arg)
     else
       if arg.include? '..'
@@ -49,12 +49,18 @@ class CBETA::HTMLToPDF
   end
   
   def convert_collection(c)
-    @series = c
+    @canon = c
     puts 'convert_collection ' + c
-    folder = File.join(@input, @series)
-    Dir.foreach(folder) { |vol|
-      next if ['.', '..', '.DS_Store'].include? vol
-      convert_vol(vol)
+    
+    output_folder = File.join(@output, @canon)
+    FileUtils.mkdir_p(output_folder) unless Dir.exist? output_folder
+    
+    folder = File.join(@input, @canon)
+    Dir.foreach(folder) { |f|
+      next if f.start_with? '.'
+      src = File.join(folder, f, 'main.htm')
+      dest = File.join(output_folder, "#{f}.pdf")
+      convert_file(src, dest)
     }
   end
   
@@ -63,32 +69,5 @@ class CBETA::HTMLToPDF
     cmd = @converter % { in: html_fn, out: pdf_fn}
     `#{cmd}`
   end
-  
-  def convert_vol(arg)
-    vol = arg.upcase
-    canon = vol[0]
-    vol_folder = File.join(@input, canon, vol)
     
-    output_folder = File.join(@output, canon, vol)
-    FileUtils.mkdir_p(output_folder) unless Dir.exist? output_folder
-    
-    Dir.entries(vol_folder).sort.each do |f|
-      next if f.start_with? '.'
-      src = File.join(vol_folder, f, 'main.htm')  
-      dest = File.join(output_folder, "#{f}.pdf")
-      convert_file(src, dest)
-    end
-  end
-  
-  def convert_vols(v1, v2)
-    puts "convert volumns: #{v1}..#{v2}"
-    @series = v1[0]
-    folder = File.join(@input, @series)
-    Dir.foreach(folder) { |vol|
-      next if vol < v1
-      next if vol > v2
-      convert_vol(vol)
-    }
-  end
-  
 end

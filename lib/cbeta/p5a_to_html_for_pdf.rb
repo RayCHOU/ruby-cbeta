@@ -28,8 +28,10 @@ class CBETA::P5aToHTMLForPDF
   # @option opts [String] :front_page_title 加在目錄的 front_page 標題
   # @option opts [String] :back_page 內文後可以加一段 HTML，例如「版權聲明」
   # @option opts [String] :back_page_title 加在目錄的 back_page 標題
+  # @option opts [Boolean] :toc 要不要放目次, 預設會有目次
   def initialize(xml_root, out_root, opts={})
     @config = {
+      toc: true
     }
     @config.merge!(opts)
     
@@ -61,8 +63,8 @@ class CBETA::P5aToHTMLForPDF
     return convert_all if target.nil?
 
     arg = target.upcase
-    if arg.size == 1
-      handle_collection(arg)
+    if arg.size <= 2
+      convert_collection(arg)
     else
       if arg.include? '..'
         arg.match(/^([^\.]+?)\.\.([^\.]+)$/) {
@@ -76,39 +78,123 @@ class CBETA::P5aToHTMLForPDF
 
   private
   
-  def before_parse_xml(xml_fn)
-    @div_count = 0
-    @in_l = false
-    @lg_row_open = false
-    @t_buf1 = []
-    @t_buf2 = []
-    @open_divs = []
-    @sutra_no = File.basename(xml_fn, ".xml")
-    
-    @output_folder_sutra = File.join(@out_folder, @sutra_no)
-    FileUtils.mkdir_p(@output_folder_sutra) unless Dir.exist? @output_folder_sutra
-    
-    src = File.join(CBETA::DATA, 'html-for-pdf.css')
-    dest = File.join(@output_folder_sutra, 'html-for-pdf.css')
-    FileUtils.copy(src, dest)
-    
+  def before_convert_work(work_id)
     @nav_doc = Nokogiri::XML('<ul></ul>')
     @nav_doc.remove_namespaces!()
     @nav_root = @nav_doc.at_xpath('/ul')
     @current_nav = [@nav_root]
+    @div_count = 0
     @mulu_count = 0    
+    @open_divs = []
+    @text = ''
+    
+    @output_folder_work = File.join(@out_root, @series, work_id)
+    FileUtils.mkdir_p(@output_folder_work) unless Dir.exist? @output_folder_work
+
+    src = File.join(CBETA::DATA, 'html-for-pdf.css')
+    copy_file(src)
+    
+    @cover = nil
+    if @config.key? :graphic_base
+      cover = File.join(@config[:graphic_base], 'covers', @series, "#{work_id}.jpg")
+      if File.exist? cover
+        @mulu_count += 1
+        @cover = "<a id='mulu#{@mulu_count}'></a><mulu1 title='封面'>&nbsp;</mulu1>"
+        @cover += "<div id='cover'><img src='#{work_id}.jpg' /></div>"
+        copy_file(cover)
+      end
+    end
     
     if @config[:front_page_title]
       s = @config[:front_page_title]
       @nav_root.add_child("<li><a href='#front'>#{s}</a></li>")
-    end    
+    end
+    
+  end
+  
+  def before_parse_xml(xml_fn)
+    @in_l = false
+    @lg_row_open = false
+    @t_buf1 = []
+    @t_buf2 = []
+    @sutra_no = File.basename(xml_fn, ".xml")
   end
 
   def convert_all
     Dir.foreach(@xml_root) { |c|
       next unless c.match(/^[A-Z]$/)
-      handle_collection(c)
+      convert_collection(c)
     }
+  end
+  
+  def convert_collection(c)
+    @series = c
+    puts 'handle_collection ' + c
+    folder = File.join(@xml_root, @series)
+    @works = {}
+    prepare_work_list(folder)
+    @works.each do |work_id, xml_files|
+      convert_work(work_id, xml_files)
+    end
+  end
+  
+  def convert_work(work_id, xml_files)
+    puts "convert xml to html: work_id: #{work_id}"
+    
+    before_convert_work(work_id)
+    
+    # 目次
+    if @config[:back_page_title]
+      s = @config[:back_page_title]
+      @nav_root.add_child("<li><a href='#back'>#{s}</a></li>")
+    end
+    
+    
+    if @config.key? :front_page
+      s = File.read(@config[:front_page])
+      @front = "<div id='front'>#{s}</div>"
+    end
+    
+    if @config.key? :back_page
+      s = File.read(@config[:back_page])
+      @back = "<div id='back'>#{s}</div>"
+    end
+    
+    xml_files.each do |fn|
+      @text += convert_xml_file(fn)
+    end
+    
+    if @config[:toc]
+      @toc = to_html(@nav_root)
+      @toc.gsub!('<ul/>', '')
+    	@toc = "<div><h1>目次</h1>#{@toc}</div>"
+    else
+      @toc = ''
+    end
+
+    fn = File.join(CBETA::DATA, 'pdf-template.htm')
+    template = File.read(fn)
+    output = template % {
+      cover: @cover,
+      toc: @toc,
+      front: @front,
+      text: @text,
+      back: @back
+    }
+
+    fn = File.join(@output_folder_work, 'main.htm')
+    File.write(fn, output)
+  end
+  
+  def convert_xml_file(xml_fn)
+    before_parse_xml(xml_fn)
+    parse_xml(xml_fn)
+  end
+  
+  def copy_file(src)
+    basename = File.basename(src)
+    dest = File.join(@output_folder_work, basename)
+    FileUtils.copy(src, dest)    
   end
 
   def handle_anchor(e)
@@ -141,15 +227,6 @@ class CBETA::P5aToHTMLForPDF
     to_html(cell)
   end
 
-  def handle_collection(c)
-    @series = c
-    puts 'handle_collection ' + c
-    folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if ['.', '..', '.DS_Store'].include? vol
-      handle_vol(vol)
-    }
-  end
 
   def handle_corr(e)
     "<span class='corr'>%s</span>" % traverse(e)
@@ -201,8 +278,7 @@ class CBETA::P5aToHTMLForPDF
       else
         fn = "#{gid}.gif"
         src = File.join(@config[:graphic_base], 'sd-gif', gid[3..4], fn)
-        dest = File.join(@output_folder_sutra, fn)
-        FileUtils.copy(src, dest)
+        copy_file(src)
         return "<img src='#{fn}'/>"
       end
     end
@@ -210,7 +286,7 @@ class CBETA::P5aToHTMLForPDF
     if gid.start_with?('RJ')
       fn = "#{gid}.gif"
       src = File.join(@config[:graphic_base], 'rj-gif', gid[3..4], fn)
-      dest = File.join(@output_folder_sutra, fn)
+      copy_file(src)
       return "<img src='#{fn}'/>"
     end
    
@@ -229,9 +305,9 @@ class CBETA::P5aToHTMLForPDF
     url.sub!(/^.*(figures\/.*)$/, '\1')
     
     src = File.join(@config[:graphic_base], url)
+    copy_file(src)
+    
     fn = File.basename(src)
-    dest = File.join(@output_folder_sutra, fn)
-    FileUtils.copy(src, dest)
     "<img src='#{fn}'/>"
   end
 
@@ -347,7 +423,13 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_list(e)
-    "<ul>%s</ul>" % traverse(e)
+    doc = Nokogiri::XML::Document.new
+    node = doc.create_element('ul')
+    if e.key? 'rendition'
+      node['class'] = e['rendition']
+    end
+    node.inner_html = traverse(e)
+    to_html(node) + "\n"
   end
 
   def handle_milestone(e)
@@ -438,7 +520,13 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_p(e)
-    "<div class='p'>%s</div>\n" % traverse(e)
+    doc = Nokogiri::XML::Document.new
+    node = doc.create_element('p')
+    if e.key? 'rend'
+      node['style'] = e['rend']
+    end
+    node.inner_html = traverse(e)
+    to_html(node) + "\n"
   end
 
   def handle_row(e)
@@ -463,6 +551,10 @@ class CBETA::P5aToHTMLForPDF
     end
     @toc = to_html(@nav_root)
     @toc.gsub!('<ul/>', '')
+    
+    if @config.key? :graphic_base
+      
+    end
     
     if @config.key? :front_page
       s = File.read(@config[:front_page])
@@ -541,7 +633,11 @@ class CBETA::P5aToHTMLForPDF
     abort "未處理底本" if @orig.nil?
 
     @vol = vol
-    @series = vol[0]
+    if vol.start_with? 'DA'
+      @series = 'DA'
+    else
+      @series = vol[0]
+    end
     @out_folder = File.join(@out_root, @series, vol)
     FileUtils.remove_dir(@out_folder, force=true)
     FileUtils::mkdir_p @out_folder
@@ -591,6 +687,11 @@ class CBETA::P5aToHTMLForPDF
     
     @author = doc.at_xpath("//titleStmt/author").text
     
+    if @cover.nil?
+      @cover = "<p class='title'>#{@title}</p>\n"
+      @cover += "<p class='author'>#{@author}</p>"
+    end    
+    
     e = doc.at_xpath("//editionStmt/edition/date")
     abort "找不到版本日期" if e.nil?
     @edition_date = e.text.sub(/\$Date: (.*?) \$$/, '\1')
@@ -626,6 +727,23 @@ class CBETA::P5aToHTMLForPDF
     @t_buf2 = []
     
     r + "<table>\n"
+  end
+  
+  def prepare_work_list(input_folder)
+    Dir.foreach(input_folder) do |f|
+      next if f.start_with? '.'
+      p1 = File.join(input_folder, f)
+      if File.file?(p1)
+        work = f.sub(/^([A-Z]{1,2})\d{2,3}n(.*)\.xml$/, '\1\2')
+        work = 'T0220' if work.start_with? 'T0220'
+        unless @works.key? work
+          @works[work] = []
+        end
+        @works[work] << p1
+      else
+        prepare_work_list(p1)
+      end
+    end
   end
 
   def to_html(e)

@@ -16,6 +16,11 @@ a {
 body {
 	font-family: PMingLiU, extb;
 }
+
+div#cover {
+	page-break-after: always
+}
+
 div.lg {
 	display: table;
 	margin-left: 1em;
@@ -30,6 +35,10 @@ div.p {
 	margin-bottom: 1em;
 	margin-top: 1em;
 	line-height: 1.4;
+	text-indent: 2em;
+}
+li div.p {
+	text-indent: 0;
 }
 p.h1 {
 	margin-left: 1em;
@@ -129,6 +138,7 @@ th, td {
 	word-break: break-all;
 	text-indent: 0;
 }
+
 ul.simple {
 	list-style-type: none;
 }
