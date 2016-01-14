@@ -308,6 +308,7 @@ class CBETA::P5aToSimpleHTML
 
     @orig = @cbeta.get_canon_abbr(vol[0])
     abort "未處理底本" if @orig.nil?
+    @orig_short = @orig.sub(/^【(.*)】$/, '\1')
 
     @vol = vol
     @series = vol[0]
@@ -378,6 +379,9 @@ class CBETA::P5aToSimpleHTML
       text += "<body>" + to_html(frag) + "</body></html>"
 
       fn = ed.sub(/^【(.*?)】$/, '\1')
+      if fn != 'CBETA' and fn != @orig_short
+        fn = @orig_short + '→' + fn
+      end
       fn = "#{fn}.html"
       output_path = File.join(folder, fn)
       File.write(output_path, text)
