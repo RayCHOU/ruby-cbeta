@@ -306,7 +306,7 @@ class CBETA::P5aToSimpleHTML
   def handle_vol(vol)
     puts "convert volumn: #{vol}"
 
-    @orig = @cbeta.get_canon_abbr(vol[0])
+    @orig = @cbeta.get_canon_symbol(vol[0])
     abort "未處理底本" if @orig.nil?
     @orig_short = @orig.sub(/^【(.*)】$/, '\1')
 
@@ -384,6 +384,7 @@ class CBETA::P5aToSimpleHTML
       end
       fn = "#{fn}.html"
       output_path = File.join(folder, fn)
+      puts "write #{output_path}"
       File.write(output_path, text)
     end
   end
