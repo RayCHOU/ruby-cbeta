@@ -17,7 +17,10 @@ class CBETA::P5aToHTMLForEveryEdition
   # 內容不輸出的元素
   PASS=['back', 'teiHeader']
   
-  private_constant :PASS
+  # 某版用字缺的符號
+  MISSING = '－'
+  
+  private_constant :PASS, :MISSING
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param out_root [String] 輸出 HTML 路徑
@@ -78,6 +81,7 @@ class CBETA::P5aToHTMLForEveryEdition
     @next_line_buf = ''
     @notes_mod = {}
     @notes_orig = {}
+    @notes_dila = {}
     @open_divs = []
     @sutra_no = File.basename(xml_fn, ".xml")
   end
@@ -132,7 +136,7 @@ class CBETA::P5aToHTMLForEveryEdition
 
   def handle_byline(e)
     r = '<p class="byline">'
-    r += "<span class='lineInfo'>#{@lb}</span>"
+    r += line_info
     r += traverse(e)
     r + '</p>'
   end
@@ -158,7 +162,24 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   def handle_corr(e)
-    "<r w='【CBETA】' l='#{@lb}' w='#{@char_count}'>%s</r>" % traverse(e)
+    r = ''
+    if e.parent.name == 'choice'
+      sic = e.parent.at_xpath('sic')
+      unless sic.nil?
+        n = @notes_dila[@juan].size + 1
+        r = "<a class='noteAnchor dila' href='#dila_note#{n}'></a>"
+
+        note = @orig
+        sic_text = traverse(sic, 'back')
+        if sic_text.empty?
+          note += MISSING
+        else
+          note += sic_text
+        end
+        @notes_dila[@juan] << "<span class='footnote dila' id='dila_note#{n}'>#{note}</span>"
+      end
+    end
+    r + "<r w='【CBETA】' l='#{@lb}' w='#{@char_count}'>%s</r>" % traverse(e)
   end
 
   def handle_div(e)
@@ -326,7 +347,7 @@ class CBETA::P5aToHTMLForEveryEdition
       r += "</div><!-- end of lg-row -->"
       @lg_row_open = false
     end
-    r += "<span class='lb' id='#{line_head}'>#{line_head}</span>"
+    r += "<span \nclass='lb' id='#{line_head}'>#{line_head}</span>"
     unless @next_line_buf.empty?
       r += @next_line_buf
       @next_line_buf = ''
@@ -335,6 +356,20 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   def handle_lem(e)
+    r = ''
+    content = traverse(e)
+    w = e['wit']
+    if w.include? 'CBETA' and not w.include? @orig
+      n = @notes_dila[@juan].size + 1
+      r = "<a class='noteAnchor dila' href='#dila_note#{n}'></a>"
+      r += "<span class='cbeta'>%s</span>" % content
+      r = "<r w='#{w}' l='#{@lb}'>#{r}</r>"
+
+      note = lem_note_cf(e)
+      note += lem_note_rdg(e)
+      @notes_dila[@juan] << "<span class='footnote dila' id='dila_note#{n}'>#{note}</span>"
+    end
+    
     # 沒有 rdg 的版本，用字同 lem
     editions = Set.new @editions
     e.xpath('./following-sibling::rdg').each do |rdg|
@@ -342,10 +377,10 @@ class CBETA::P5aToHTMLForEveryEdition
         editions.delete w
       end
     end
-    w = editions.to_a.join(' ')
     
-    r = traverse(e)
-    "<r w='#{w}' l='#{@lb}'>#{r}</r>"
+    editions.delete('【CBETA】') unless r.empty?
+    w = editions.to_a.join(' ')
+    r + ("<r w='#{w}' l='#{@lb}'>%s</r>" % content)
   end
 
   def handle_lg(e)
@@ -387,6 +422,7 @@ class CBETA::P5aToHTMLForEveryEdition
       @back_orig[@juan] = @back_orig[0]
       @notes_mod[@juan] = {}
       @notes_orig[@juan] = {}
+      @notes_dila[@juan] = []
       r += "<juan #{@juan}>"
       @open_divs.each { |d|
         r += "<div class='div-#{d['type']}'>"
@@ -507,8 +543,12 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   def handle_p(e)
-    r = '<p>'
-    r += "<span class='lineInfo'>#{@lb}</span>"
+    if e.key? 'type'
+      r = "<p class='%s'>" % e['type']
+    else
+      r = '<p>'
+    end
+    r += line_info
     r += traverse(e)
     r + '</p>'
   end
@@ -649,17 +689,73 @@ class CBETA::P5aToHTMLForEveryEdition
     when '【CBETA】'
       r = @back[juan_no]
       @notes_mod[juan_no].each_pair do |k,v|
-        r += "<span class='footnote_cb' id='n#{k}'>#{v}</span>\n"
+        r += "<span class='footnote cb' id='n#{k}'>#{v}</span>\n"
       end
+      r += @notes_dila[juan_no].join("\n")
     when @orig
       r = @back_orig[juan_no]
       @notes_orig[juan_no].each_pair do |k,v|
-        r += "<span class='footnote_orig' id='n#{k}'>#{v}</span>\n"
+        r += "<span class='footnote #{@series}' id='n#{k}'>#{v}</span>\n"
       end
     end
     r
   end
+  
+  def html_copyright
+    r = "<div id='cbeta-copyright'><p>\n"
+    
+    orig = @cbeta.get_canon_nickname(@series)
+    v = @vol.sub(/^[A-Z]0*([^0].*)$/, '\1')
+    n = @sutra_no.sub(/^[A-Z]\d{2,3}n0*([^0].*)$/, '\1')
+    r += "【經文資訊】#{orig}第 #{v} 冊 No. #{n} #{@title}<br/>\n"
+    r += "【版本記錄】CBETA 電子佛典 版本日期：#{@edition_date}<br/>\n"    
+    r += "【編輯說明】本資料庫由中華電子佛典協會（CBETA）依#{orig}所編輯<br/>\n"
+    
+    r += "【原始資料】#{@contributors}<br/>\n"
+    r += "【其他事項】本資料庫可自由免費流通，詳細內容請參閱【中華電子佛典協會資料庫版權宣告】\n"
+    r += "</p></div><!-- end of cbeta-copyright -->\n"  
+  end
+  
+  def lem_note_cf(e)
+    # ex: T32n1670A.xml, p. 703a16
+    # <note type="cf1">K30n1002_p0257a01-a23</note>
+    refs = []
+    e.xpath('./note').each { |n|
+      if n.key?('type') and n['type'].start_with? 'cf'
+        s = n.content
+        if linehead_exist_in_cbeta(s)
+          s = "<span class='note_cf'>#{s}</span>"
+        end
+        refs << s
+      end
+    }
+    if refs.empty?
+      ''
+    else
+      '修訂依據：' + refs.join('；') + '。'
+    end
+  end
 
+  def lem_note_rdg(lem)
+    r = ''
+    app = lem.parent
+    @pass << false
+    app.xpath('rdg').each { |rdg|
+      if rdg['wit'].include? @orig
+        s = traverse(rdg, 'back')
+        s = MISSING if s.empty?
+        r += @orig + s
+      end
+    }
+    @pass.pop
+    r += '。' unless r.empty?
+    r
+  end
+
+  def line_info
+    "<span class='lineInfo' line='#{@lb}'></span>"
+  end
+  
   def linehead_exist_in_cbeta(s)
     @xml_root
     corpus = s[0]
@@ -705,6 +801,14 @@ class CBETA::P5aToHTMLForEveryEdition
     e = doc.xpath("//titleStmt/title")[0]
     @title = traverse(e, 'txt')
     @title = @title.split()[-1]
+    
+    e = doc.at_xpath("//editionStmt/edition/date")
+    abort "找不到版本日期" if e.nil?
+    @edition_date = e.text.sub(/\$Date: (.*?) \$$/, '\1')
+    
+    e = doc.at_xpath("//projectDesc/p[@lang='zh']")
+    abort "找不到貢獻者" if e.nil?
+    @contributors = e.text
     
     read_mod_notes(doc)
 
@@ -753,6 +857,7 @@ class CBETA::P5aToHTMLForEveryEdition
       text = frag.to_html
       
       back = html_back(juan_no, ed)
+      copyright = html_copyright
 
       fn = ed.sub(/^【(.*)】$/, '\1')
       if fn != 'CBETA' and fn != @orig_short
@@ -764,7 +869,6 @@ class CBETA::P5aToHTMLForEveryEdition
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta name="filename" content="#{fn}" />
   <title>#{@title}</title>
 </head>
 <body>
@@ -772,6 +876,7 @@ class CBETA::P5aToHTMLForEveryEdition
   <div id='back'>
     #{back}
   </div>
+  #{copyright}
 </body></html>
 eos
       File.write(output_path, text)
