@@ -128,6 +128,16 @@ class CBETA::P5aToText
     end
   end
 
+  # 取得所有對校版本
+  def get_editions(doc)
+    r = Set.new [@orig, "【CBETA】"] # 至少有底本及 CBETA 兩個版本
+    doc.xpath('//lem|//rdg').each do |e|
+      w = e['wit'].scan(/【.*?】/)
+      r.merge w
+    end
+    r
+  end
+  
   def handle_anchor(e)
     if e.has_attribute?('type')
       if e['type'] == 'circle'
@@ -274,12 +284,16 @@ class CBETA::P5aToText
   end
 
   def handle_lem(e)
-    r = ''
-    r = traverse(e)
-    w = e['wit'].scan(/【.*?】/)
-    @editions.merge w
-    w = w.join(' ')
-    "<r w='#{w}'>#{r}</r>"
+    # 沒有 rdg 的版本，用字同 lem
+    editions = Set.new @editions
+    e.xpath('./following-sibling::rdg').each do |rdg|
+      rdg['wit'].scan(/【.*?】/).each do |w|
+        editions.delete w
+      end
+    end
+    
+    w = editions.to_a.join(' ')
+    "<r w='#{w}'>%s</r>" % traverse(e)
   end
 
   def handle_lg(e)
@@ -363,10 +377,7 @@ class CBETA::P5aToText
   end
 
   def handle_rdg(e)
-    r = traverse(e)
-    w = e['wit'].scan(/【.*?】/)
-    @editions.merge w
-    "<r w='#{e['wit']}'>#{r}</r>"
+    "<r w='#{e['wit']}'>%s</r>" % traverse(e)
   end
 
   def handle_row(e)
@@ -385,7 +396,7 @@ class CBETA::P5aToText
     puts "convert sutra #{xml_fn}"
     @dila_note = 0
     @div_count = 0
-    @editions = Set.new [@orig, "【CBETA】"] # 至少有底本跟CBETA兩種版本
+    #@editions = Set.new [@orig, "【CBETA】"] # 至少有底本跟CBETA兩種版本
     @in_l = false
     @juan = 0
     @lg_row_open = false
@@ -510,6 +521,8 @@ class CBETA::P5aToText
   def parse_xml(xml_fn)
     doc = open_xml(xml_fn)        
     root = doc.root()
+    
+    @editions = get_editions(doc)
 
     body = root.xpath("text/body")[0]
     traverse(body)
@@ -531,9 +544,10 @@ class CBETA::P5aToText
     @editions.each do |ed|
       frag = Nokogiri::XML.fragment(txt)
       frag.search("r").each do |node|
-        if node['w'] != ed
-          node.remove
+        if node['w'].include? ed
+          node.add_previous_sibling node.inner_html
         end
+        node.remove
       end
       text = frag.content
       text = appify(text) if @settings[:format] == 'app'

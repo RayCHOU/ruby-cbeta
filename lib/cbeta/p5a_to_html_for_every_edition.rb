@@ -179,7 +179,7 @@ class CBETA::P5aToHTMLForEveryEdition
         @notes_dila[@juan] << "<span class='footnote dila' id='dila_note#{n}'>#{note}</span>"
       end
     end
-    r + "<r w='【CBETA】' l='#{@lb}' w='#{@char_count}'>%s</r>" % traverse(e)
+    r + "<r w='【CBETA】' l='#{@lb}' w='#{@char_count}'><span class='cbeta'>%s</span></r>" % traverse(e)
   end
 
   def handle_div(e)
@@ -500,7 +500,7 @@ class CBETA::P5aToHTMLForEveryEdition
         @pass.pop
         #@back[@juan] = "<span class='footnote_cb' id='n#{n}'>#{s}</span>\n"
         @notes_mod[@juan][n] = s
-        return "<r w='【CBETA】'><a class='noteAnchor' href='#n#{n}'></a></r>"
+        return "<r w='【CBETA】'><a class='noteAnchor cb' href='#n#{n}'></a></r>"
       when 'rest'
         return ''
       else
@@ -527,13 +527,18 @@ class CBETA::P5aToHTMLForEveryEdition
     @pass.pop
     @notes_orig[@juan][n] = s
     @notes_mod[@juan][n] = s
+    
+    c = @series
+    
+    # 如果 CBETA 沒有修訂，就跟底本的註一樣
+    c += " cb" unless @mod_notes.include? n
 
     label = case anchor_type
     when 'biao' then " data-label='標#{n[-2..-1]}'"
     when 'ke'   then " data-label='科#{n[-2..-1]}'"
     else ''
     end
-    s = "<a class='noteAnchor' href='#n#{n}'#{label}></a>"
+    s = "<a class='noteAnchor #{c}' href='#n#{n}'#{label}></a>"
     r = "<r w='#{@orig}'>#{s}</r>"
     
     unless @mod_notes.include? n
@@ -879,6 +884,7 @@ class CBETA::P5aToHTMLForEveryEdition
   #{copyright}
 </body></html>
 eos
+      puts "write #{output_path}"
       File.write(output_path, text)
     end    
   end
