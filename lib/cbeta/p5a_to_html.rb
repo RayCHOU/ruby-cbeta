@@ -432,6 +432,7 @@ class CBETA::P5aToHTML
     when 't'         then handle_t(e)
     when 'tt'        then handle_tt(e)
     when 'table'     then handle_table(e)
+    when 'unclear'   then handle_unclear(e)
     else traverse(e)
     end
     r
@@ -606,6 +607,10 @@ class CBETA::P5aToHTML
     r
   end
 
+  def handle_unclear(e)
+    '▆'
+  end
+  
   def handle_vol(vol)
     puts "convert volumn: #{vol}"
 

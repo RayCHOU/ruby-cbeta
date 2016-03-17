@@ -357,6 +357,7 @@ class CBETA::P5aToText
     when 't'         then handle_t(e)
     when 'table'     then handle_table(e)
     when 'teiHeader' then ''
+    when 'unclear'   then '▆'
     else traverse(e)
     end
     r

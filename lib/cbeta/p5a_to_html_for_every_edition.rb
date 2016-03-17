@@ -476,6 +476,7 @@ class CBETA::P5aToHTMLForEveryEdition
     when 't'         then handle_t(e)
     when 'tt'        then handle_tt(e)
     when 'table'     then handle_table(e)
+    when 'unclear'   then handle_unclear(e)
     else traverse(e)
     end
     r
@@ -655,6 +656,10 @@ class CBETA::P5aToHTMLForEveryEdition
       @char_count += text_size
     end
     r
+  end
+  
+  def handle_unclear(e)
+    '▆'
   end
 
   def handle_vol(vol)

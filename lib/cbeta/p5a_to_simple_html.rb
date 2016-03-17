@@ -190,6 +190,7 @@ class CBETA::P5aToSimpleHTML
     when 'tt'        then handle_tt(e)
     when 't'         then handle_t(e)
     when 'teiHeader' then ''
+    when 'unclear'   then '▆'
     else traverse(e)
     end
     r
