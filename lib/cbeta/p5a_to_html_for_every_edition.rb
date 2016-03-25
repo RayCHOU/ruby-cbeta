@@ -347,7 +347,11 @@ class CBETA::P5aToHTMLForEveryEdition
       r += "</div><!-- end of lg-row -->"
       @lg_row_open = false
     end
-    r += "<span \nclass='lb' id='#{line_head}'>#{line_head}</span>"
+    
+    c = 'lb'
+    c += ' honorific' if e['type'] == 'honorific'
+    r += "<span \nclass='#{c}' id='#{line_head}'>#{line_head}</span>"
+    
     unless @next_line_buf.empty?
       r += @next_line_buf
       @next_line_buf = ''
