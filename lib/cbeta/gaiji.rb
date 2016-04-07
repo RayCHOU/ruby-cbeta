@@ -92,6 +92,9 @@ class CBETA::Gaiji
     end
     char.xpath('mapping').each do |e|
       case e['type']
+      when 'normal_unicode'
+        u = e.text[2..-1]
+        r['normal_unicode'] = [u.hex].pack('U')
       when 'unicode'
         u = e.text[2..-1]
         r['unicode'] = u

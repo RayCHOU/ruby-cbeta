@@ -93,6 +93,18 @@ class CBETA::P5aToHTMLForEveryEdition
     end
   end
   
+  def filter_html(html, ed)
+    frag = Nokogiri::HTML.fragment(html)
+    frag.search("r").each do |node|
+      if node['w'].include? ed
+        html_only_this_edition = filter_html(node.inner_html, ed)
+        node.add_previous_sibling html_only_this_edition
+      end
+      node.remove
+    end
+    frag.to_html
+  end
+  
   def get_editions(doc)
     r = Set.new [@orig, "【CBETA】"] # 至少有底本及 CBETA 兩個版本
     doc.xpath('//lem|//rdg').each do |e|
@@ -179,7 +191,7 @@ class CBETA::P5aToHTMLForEveryEdition
         @notes_dila[@juan] << "<span class='footnote dila' id='dila_note#{n}'>#{note}</span>"
       end
     end
-    r + "<r w='【CBETA】' l='#{@lb}' w='#{@char_count}'><span class='cbeta'>%s</span></r>" % traverse(e)
+    r + "<r w='【CBETA】' l='#{@lb}'><span class='cbeta'>%s</span></r>" % traverse(e)
   end
 
   def handle_div(e)
@@ -517,9 +529,15 @@ class CBETA::P5aToHTMLForEveryEdition
       return '' if e['resp'].start_with? 'CBETA'
     end
 
-    if e.has_attribute?('place') && e['place']=='inline'
+    if e.has_attribute?('place')
       r = traverse(e)
-      return "<span class='doube-line-note'>#{r}</span>"
+      
+      c = case e['place']
+      when 'interlinear' then 'interlinear-note'
+      when 'inline' then 'doube-line-note'
+      end
+      
+      return "<span class='#{c}'>#{r}</span>"
     else
       return traverse(e)
     end
@@ -536,7 +554,9 @@ class CBETA::P5aToHTMLForEveryEdition
     c = @series
     
     # 如果 CBETA 沒有修訂，就跟底本的註一樣
-    c += " cb" unless @mod_notes.include? n
+    # 但是 CBETA 修訂後的編號，有時會加上 a, b
+    # T01n0026, p. 506b07, 大正藏校勘 0506007, CBETA 拆為 0506007a, 0506007b
+    c += " cb" unless @mod_notes.include?(n) or @mod_notes.include?(n+'a')
 
     label = case anchor_type
     when 'biao' then " data-label='標#{n[-2..-1]}'"
@@ -546,7 +566,7 @@ class CBETA::P5aToHTMLForEveryEdition
     s = "<a class='noteAnchor #{c}' href='#n#{n}'#{label}></a>"
     r = "<r w='#{@orig}'>#{s}</r>"
     
-    unless @mod_notes.include? n
+    unless @mod_notes.include?(n)
       r += "<r w='【CBETA】'>#{s}</r>"
     end
     r
@@ -578,7 +598,7 @@ class CBETA::P5aToHTMLForEveryEdition
   end
   
   def handle_sic(e)
-    "<r w='#{@orig}' l='#{@lb}' w='#{@char_count}'>" + traverse(e) + "</r>"
+    "<r w='#{@orig}' l='#{@lb}'>" + traverse(e) + "</r>"
   end
 
   def handle_sutra(xml_fn)
@@ -861,14 +881,8 @@ class CBETA::P5aToHTMLForEveryEdition
     FileUtils.remove_dir(folder, force=true)
     FileUtils.makedirs folder
     @editions.each do |ed|
-      frag = Nokogiri::HTML.fragment("<div id='body'>#{html}</div>")
-      frag.search("r").each do |node|
-        if node['w'].include? ed
-          node.add_previous_sibling node.inner_html
-        end
-        node.remove
-      end
-      text = frag.to_html
+      ed_html = filter_html(html, ed)
+      text = "<div id='body'>#{ed_html}</div>"
       
       back = html_back(juan_no, ed)
       copyright = html_copyright
