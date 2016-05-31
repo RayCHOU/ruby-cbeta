@@ -74,6 +74,7 @@ class CBETA::P5aValidator
     end
     
     def check_text(text)
+      text.gsub!(/<!--.*-->/m, '')
       r = ''
       if text.include? ' <lb'
         r = 'lb 前不應有空格'
