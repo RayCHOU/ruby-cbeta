@@ -33,20 +33,10 @@ class CBETA::P5aToHTMLForEveryEdition
 
   # 將 CBETA XML P5a 轉為 HTML
   #
-  # @example for convert 大正藏第一冊:
-  #
-  #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
-  #   x2h.convert('T01')
-  #
   # @example for convert 大正藏全部:
   #
   #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
   #   x2h.convert('T')
-  #
-  # @example for convert 大正藏第五冊至第七冊:
-  #
-  #   x2h = CBETA::P5aToHTML.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
-  #   x2h.convert('T05..T07')
   #
   # T 是大正藏的 ID, CBETA 的藏經 ID 系統請參考: http://www.cbeta.org/format/id.php
   def convert(target=nil)
@@ -54,15 +44,9 @@ class CBETA::P5aToHTMLForEveryEdition
 
     arg = target.upcase
     if arg.size == 1
-      handle_collection(arg)
+      convert_canon(arg)
     else
-      if arg.include? '..'
-        arg.match(/^([^\.]+?)\.\.([^\.]+)$/) {
-          handle_vols($1, $2)
-        }
-      else
-        handle_vol(arg)
-      end
+      puts "因為某些典籍單卷跨冊，轉檔必須以某部藏經為單位，例如參數 T 表示轉換整個大正藏。"
     end
   end
 
@@ -89,9 +73,75 @@ class CBETA::P5aToHTMLForEveryEdition
   def convert_all
     Dir.entries(@xml_root).sort.each do |c|
       next unless c.match(/^[A-Z]$/)
-      handle_collection(c)
+      convert_canon(c)
     end
   end
+  
+  def convert_canon(c)
+    @series = c
+    puts 'convert canon: ' + c
+    folder = File.join(@xml_root, @series)
+    
+    @out_folder = File.join(@out_root, @series)
+    FileUtils::rm_rf @out_folder
+    FileUtils::mkdir_p @out_folder
+    
+    @html_buf = {}
+    @back_buf = {}
+    
+    Dir.entries(folder).sort.each do |vol|
+      next if vol.start_with? '.'
+      convert_vol(vol)
+    end
+  end
+  
+  def convert_sutra(xml_fn)
+    puts "convert sutra #{xml_fn}"
+    
+    before_parse_xml(xml_fn)
+
+    text = parse_xml(xml_fn)
+
+    # 註標移到 lg-cell 裡面，不然以 table 呈現 lg 會有問題
+    text.gsub!(/(<a class='noteAnchor'[^>]*><\/a>)(<div class="lg-cell"[^>]*>)/, '\2\1')
+    
+    juans = text.split(/(<juan \d+>)/)
+    open = false
+    fo = nil
+    juan_no = nil
+    fn = ''
+    buf = ''
+    # 一卷一檔
+    juans.each { |j|
+      if j =~ /<juan (\d+)>$/
+        juan_no = $1.to_i
+      elsif juan_no.nil?
+        buf = j
+      else
+        write_juan(juan_no, buf+j)
+        buf = ''
+      end
+    }
+  end
+  
+  
+  def convert_vol(vol)
+    puts "convert volumn: #{vol}"
+
+    @orig = @cbeta.get_canon_symbol(vol[0])
+    abort "未處理底本" if @orig.nil?
+    @orig_short = @orig.sub(/^【(.*)】$/, '\1')
+
+    @vol = vol
+    
+    source = File.join(@xml_root, @series, vol)
+    Dir.entries(source).sort.each do |f|
+      next if f.start_with? '.'
+      fn = File.join(source, f)
+      convert_sutra(fn)
+    end
+  end
+  
   
   def filter_html(html, ed)
     frag = Nokogiri::HTML.fragment(html)
@@ -161,16 +211,6 @@ class CBETA::P5aToHTMLForEveryEdition
     cell['colspan'] = e['cols'] if e.key? 'cols'
     cell.inner_html = traverse(e)
     to_html(cell)
-  end
-
-  def handle_collection(c)
-    @series = c
-    puts 'handle_collection ' + c
-    folder = File.join(@xml_root, @series)
-    Dir.entries(folder).sort.each do |vol|
-      next if vol.start_with? '.'
-      handle_vol(vol)
-    end
   end
 
   def handle_corr(e)
@@ -601,35 +641,6 @@ class CBETA::P5aToHTMLForEveryEdition
     "<r w='#{@orig}' l='#{@lb}'>" + traverse(e) + "</r>"
   end
 
-  def handle_sutra(xml_fn)
-    puts "convert sutra #{xml_fn}"
-    
-    before_parse_xml(xml_fn)
-
-    text = parse_xml(xml_fn)
-
-    # 註標移到 lg-cell 裡面，不然以 table 呈現 lg 會有問題
-    text.gsub!(/(<a class='noteAnchor'[^>]*><\/a>)(<div class="lg-cell"[^>]*>)/, '\2\1')
-    
-    juans = text.split(/(<juan \d+>)/)
-    open = false
-    fo = nil
-    juan_no = nil
-    fn = ''
-    buf = ''
-    # 一卷一檔
-    juans.each { |j|
-      if j =~ /<juan (\d+)>$/
-        juan_no = $1.to_i
-      elsif juan_no.nil?
-        buf = j
-      else
-        write_juan(juan_no, buf+j)
-        buf = ''
-      end
-    }
-  end
-
   def handle_t(e)
     if e.has_attribute? 'place'
       return '' if e['place'].include? 'foot'
@@ -685,37 +696,6 @@ class CBETA::P5aToHTMLForEveryEdition
   def handle_unclear(e)
     '▆'
   end
-
-  def handle_vol(vol)
-    puts "convert volumn: #{vol}"
-
-    @orig = @cbeta.get_canon_symbol(vol[0])
-    abort "未處理底本" if @orig.nil?
-    @orig_short = @orig.sub(/^【(.*)】$/, '\1')
-
-    @vol = vol
-    @series = vol[0]
-    @out_folder = File.join(@out_root, @series)
-    FileUtils::mkdir_p @out_folder
-    
-    source = File.join(@xml_root, @series, vol)
-    Dir.entries(source).sort.each do |f|
-      next if f.start_with? '.'
-      fn = File.join(source, f)
-      handle_sutra(fn)
-    end
-  end
-
-  def handle_vols(v1, v2)
-    puts "convert volumns: #{v1}..#{v2}"
-    @series = v1[0]
-    folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if vol < v1
-      next if vol > v2
-      handle_vol(vol)
-    }
-  end
   
   def html_back(juan_no, ed)
     r = ''
@@ -735,11 +715,28 @@ class CBETA::P5aToHTMLForEveryEdition
     r
   end
   
-  def html_copyright
+  def html_copyright(work, juan)
     r = "<div id='cbeta-copyright'><p>\n"
     
     orig = @cbeta.get_canon_nickname(@series)
-    v = @vol.sub(/^[A-Z]0*([^0].*)$/, '\1')
+    
+    # 處理 卷跨冊
+    if work=='L1557' 
+      @title = '大方廣佛華嚴經疏鈔會本'
+      if @vol=='L131' and juan==17
+        v = '130-131'
+      elsif @vol=='L132' and juan==34
+        v = '131-132'
+      elsif @vol=='L133' and juan==51
+        v = '132-133'
+      end
+    elsif work=='X0714' and @vol=='X40'  and juan==3
+      @title = '四分律含注戒本疏行宗記'
+      v = '39-40'
+    else
+      v = @vol.sub(/^[A-Z]0*([^0].*)$/, '\1')
+    end
+    
     n = @sutra_no.sub(/^[A-Z]\d{2,3}n0*([^0].*)$/, '\1')
     r += "【經文資訊】#{orig}第 #{v} 冊 No. #{n} #{@title}<br/>\n"
     r += "【版本記錄】CBETA 電子佛典 版本日期：#{@edition_date}<br/>\n"    
@@ -880,36 +877,57 @@ class CBETA::P5aToHTMLForEveryEdition
     folder = File.join(@out_folder, work, juan)
     FileUtils.remove_dir(folder, force=true)
     FileUtils.makedirs folder
+    
     @editions.each do |ed|
       ed_html = filter_html(html, ed)
-      text = "<div id='body'>#{ed_html}</div>"
-      
       back = html_back(juan_no, ed)
-      copyright = html_copyright
-
-      fn = ed.sub(/^【(.*)】$/, '\1')
-      if fn != 'CBETA' and fn != @orig_short
-        fn = @orig_short + '→' + fn
+            
+      # 如果是卷跨冊的上半部
+      if (work=='L1557' and @vol=='L130' and juan_no==17) or
+         (work=='L1557' and @vol=='L131' and juan_no==34) or
+         (work=='L1557' and @vol=='L132' and juan_no==51) or
+         (work=='X0714' and @vol=='X39' and juan_no==3)
+         @html_buf[ed] = ed_html
+         @back_buf[ed] = back
+         next
+      else    
+        body = ed_html
+        unless @html_buf.empty?
+          body = @html_buf[ed] + body
+          @html_buf.delete ed
+        end
+        back = @back_buf[ed] + back unless @back_buf.empty?
+        copyright = html_copyright(work, juan_no)
+        write_juan_ed(folder, ed, body, back, copyright)
+        
+        @back_buf.delete ed
       end
-      fn += '.htm'
-      output_path = File.join(folder, fn)
-      text = <<eos
+    end
+  end
+  
+  def write_juan_ed(folder, ed, body, back, copyright)
+    fn = ed.sub(/^【(.*)】$/, '\1')
+    if fn != 'CBETA' and fn != @orig_short
+      fn = @orig_short + '→' + fn
+    end
+    fn += '.htm'
+    output_path = File.join(folder, fn)
+    text = <<eos
 <html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <title>#{@title}</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>#{@title}</title>
 </head>
 <body>
-  #{text}
-  <div id='back'>
-    #{back}
-  </div>
-  #{copyright}
+<div id='body'>#{body}</div>
+<div id='back'>
+  #{back}
+</div>
+#{copyright}
 </body></html>
 eos
-      puts "write #{output_path}"
-      File.write(output_path, text)
-    end    
+    puts "write: #{output_path}"
+    File.write(output_path, text)
   end
 
 end
