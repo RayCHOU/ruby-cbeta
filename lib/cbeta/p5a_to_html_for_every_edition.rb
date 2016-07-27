@@ -43,7 +43,7 @@ class CBETA::P5aToHTMLForEveryEdition
     return convert_all if target.nil?
 
     arg = target.upcase
-    if arg.size == 1
+    if arg.size.between?(1,2)
       convert_canon(arg)
     else
       puts "因為某些典籍單卷跨冊，轉檔必須以某部藏經為單位，例如參數 T 表示轉換整個大正藏。"

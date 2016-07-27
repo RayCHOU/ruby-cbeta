@@ -24,11 +24,13 @@ class CBETA::P5aToSimpleHTML
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param output_root [String] 輸出 Text 路徑
-  def initialize(xml_root, output_root)
+  def initialize(xml_root, output_root, opts={})
     @xml_root = xml_root
     @output_root = output_root
     @cbeta = CBETA.new
     @gaijis = CBETA::Gaiji.new
+    @config = { multi_edition: false }
+    @config.merge!(opts)
   end
 
   # 將 CBETA XML P5a 轉為 Simple HTML
@@ -96,7 +98,11 @@ class CBETA::P5aToSimpleHTML
   end
 
   def handle_corr(e)
-    "<r w='【CBETA】'>%s</r>" % traverse(e)
+    r = traverse(e)
+    if @config[:multi_edition]
+      r = "<r w='【CBETA】'>#{r}</r>"
+    end
+    r
   end
 
   def handle_g(e)
@@ -149,12 +155,14 @@ class CBETA::P5aToSimpleHTML
   end
 
   def handle_lem(e)
-    r = ''
     r = traverse(e)
-    w = e['wit'].scan(/【.*?】/)
-    @editions.merge w
-    w = w.join(' ')
-    "<r w='#{w}'>#{r}</r>"
+    if @config[:multi_edition]
+      w = e['wit'].scan(/【.*?】/)
+      @editions.merge w
+      w = w.join(' ')
+      r = "<r w='#{w}'>#{r}</r>"
+    end
+    r
   end
 
   def handle_milestone(e)
@@ -205,6 +213,8 @@ class CBETA::P5aToSimpleHTML
   end
 
   def handle_rdg(e)
+    return '' unless @config[:multi_edition]
+    
     r = traverse(e)
     w = e['wit'].scan(/【.*?】/)
     @editions.merge w
@@ -216,6 +226,8 @@ class CBETA::P5aToSimpleHTML
   end
 
   def handle_sic(e)
+    return '' unless@config[:multi_edition]
+    
     "<r w='#{@orig}'>" + traverse(e) + "</r>"
   end
 
@@ -359,6 +371,15 @@ class CBETA::P5aToSimpleHTML
   end
 
   def write_juan(juan_no, txt)
+    if @config[:multi_edition]
+      write_juan_for_editions(juan_no, txt)
+    else
+      fn = File.join(@out_sutra, "%03d.html" % juan_no)
+      write_juan_to_file(fn, txt)
+    end
+  end
+  
+  def write_juan_for_editions(juan_no, txt)
     folder = File.join(@out_sutra, "%03d" % juan_no)
     FileUtils.makedirs(folder)
     @editions.each do |ed|
@@ -369,15 +390,7 @@ class CBETA::P5aToSimpleHTML
         end
         node.remove
       end
-
-      text = <<-END.gsub(/^\s+\|/, '')
-        |<!DOCTYPE html>
-        |<html>
-        |<head>
-        |  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        |</head>
-      END
-      text += "<body>" + to_html(frag) + "</body></html>"
+      html = to_html(frag)
 
       fn = ed.sub(/^【(.*?)】$/, '\1')
       if fn != 'CBETA' and fn != @orig_short
@@ -385,9 +398,20 @@ class CBETA::P5aToSimpleHTML
       end
       fn = "#{fn}.html"
       output_path = File.join(folder, fn)
-      puts "write #{output_path}"
-      File.write(output_path, text)
+      write_juan_to_file(output_path, html)
     end
+  end
+  
+  def write_juan_to_file(fn, html)
+    text = <<-END.gsub(/^\s+\|/, '')
+      |<!DOCTYPE html>
+      |<html>
+      |<head>
+      |  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      |</head>
+    END
+    text += "<body>#{html}</body></html>"
+    File.write(fn, text)
   end
 
   def to_html(e)
