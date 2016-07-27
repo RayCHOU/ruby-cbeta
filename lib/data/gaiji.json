@@ -127182,6 +127182,12 @@
     "unicode": "3F2D",
     "unicode-char": "㼭"
   },
+  "CB34189": {
+    "zzs": "[(處-虍)-几+人]",
+    "normal": "處",
+    "unicode": "5904",
+    "unicode-char": "处"
+  },
   "CB34100": {
     "zzs": "[庚-人+(〡/八)]",
     "normal": "庚",
@@ -127404,6 +127410,12 @@
     "normal": "腴",
     "unicode": "266A4",
     "unicode-char": "𦚤"
+  },
+  "CB34218": {
+    "zzs": "[剎-、]",
+    "normal": "剎",
+    "unicode": "5239",
+    "unicode-char": "刹"
   },
   "CB34277": {
     "zzs": "[拱-卄+(弓*弓)]",
@@ -127650,6 +127662,12 @@
     "unicode": "24E04",
     "unicode-char": "𤸄"
   },
+  "CB34318": {
+    "zzs": "[泳-永+勻]",
+    "normal": "洵",
+    "unicode": "6C6E",
+    "unicode-char": "汮"
+  },
   "CB34383": {
     "zzs": "[攸/魚]",
     "normal": "鯈"
@@ -127833,6 +127851,18 @@
     "unicode": "9FA9",
     "unicode-char": "龩"
   },
+  "CB34254": {
+    "zzs": "[文/((界-田)@示)]",
+    "normal": "齋",
+    "unicode": "658E",
+    "unicode-char": "斎"
+  },
+  "CB34255": {
+    "zzs": "[軗/手]",
+    "normal": "擊",
+    "unicode": "6483",
+    "unicode-char": "撃"
+  },
   "CB34259": {
     "zzs": "[虫*從]",
     "unicode": "45E5",
@@ -127910,6 +127940,12 @@
     "zzs": "[火*郎]",
     "unicode": "2434E",
     "unicode-char": "𤍎"
+  },
+  "CB34276": {
+    "zzs": "[麼-ㄠ+么]",
+    "normal": "麼",
+    "unicode": "9EBD",
+    "unicode-char": "麽"
   },
   "CB34319": {
     "zzs": "[已-(乳-孚)+口]",

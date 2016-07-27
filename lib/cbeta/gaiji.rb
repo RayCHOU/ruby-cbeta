@@ -36,6 +36,11 @@ class CBETA::Gaiji
   def [](cb)
   	@gaijis[cb]
   end
+  
+  # 檢查某個缺字碼是否存在
+  def key?(cb)
+    @gaijis.key? cb
+  end
 
   # 傳入缺字 CB 碼，傳回注音 array
   #
