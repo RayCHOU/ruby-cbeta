@@ -870,7 +870,7 @@ class CBETA::P5aToHTMLForEveryEdition
     if @sutra_no.match(/^(T05|T06|T07)n0220/)
       work = "T0220"
     else
-      work = @sutra_no.sub(/^([A-Z])\d{2,3}n(.*)$/, '\1\2')
+      work = @sutra_no.sub(/^([A-Z]{1,2})\d{2,3}n(.*)$/, '\1\2')
     end
     canon = work[0]
     juan = "%03d" % juan_no
