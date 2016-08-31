@@ -6,14 +6,40 @@
 require 'csv'
 
 class CBETA
+  CANON = 'DA|GA|GB|[A-Z]'
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = '.[]。，、？「」『』《》＜＞〈〉〔〕［］【】〖〗'
+
+  # 由 行首資訊 取得 藏經 ID
+  # @param linehead[String] 行首資訊, 例如 "T01n0001_p0001a01" 或 "GA009n0008_p0003a01"
+  # @return [String] 藏經 ID，例如 "T" 或 "GA"
+  def self.get_canon_id_from_linehead(linehead)
+    linehead.sub(/^(#{CANON}).*$/, '\1')
+  end
 
   # 由 冊號 取得 藏經 ID
   # @param vol[String] 冊號, 例如 "T01" 或 "GA009"
   # @return [String] 藏經 ID，例如 "T" 或 "GA"
   def self.get_canon_from_vol(vol)
-    vol.sub(/^(DA|GA|GB|[A-Z]).*$/, '\1')
+    vol.sub(/^(#{CANON}).*$/, '\1')
+  end
+  
+  # 由 行首資訊 取得 XML檔相對路徑
+  # @param linehead[String] 行首資訊, 例如 "GA009n0008_p0003a01"
+  # @return [String] XML檔相對路徑，例如 "GA/GA009/GA009n0008.xml"
+  def self.linehead_to_xml_file_path(linehead)
+    if m = linehead.match(/^(?<work>(?<vol>(?<canon>#{CANON})\d+)n\d+[a-zA-Z]?).*$/)
+      File.join(m[:canon], m[:vol], m[:work]+'.xml')
+    else
+      nil
+    end
+  end
+  
+  # 由 XML檔主檔名 取得 典籍編號
+  # @param fn[String] 檔名, 例如 "T01n0001" 或 "GA009n0008"
+  # @return [String] 典籍編號，例如 "T0001" 或 "GA0008"
+  def self.get_work_id_from_file_basename(fn)
+    fn.sub(/^(#{CANON})\d{2,3}n(.*)$/, '\1\2')
   end
   
   # 將行首資訊轉為引用格式
@@ -25,7 +51,7 @@ class CBETA
   #   CBETA.linehead_to_s('T85n2838_p1291a03')
   #   # return "T85, no. 2838, p. 1291, a03"
   def self.linehead_to_s(linehead)
-    linehead.match(/^([A-Z]\d+)n(.*)_p(\d+)([a-z]\d+)$/) {
+    linehead.match(/^((?:#{CANON})\d+)n(.*)_p(\d+)([a-z]\d+)$/) {
       return "#{$1}, no. #{$2}, p. #{$3}, #{$4}"
     }
     nil
@@ -78,9 +104,9 @@ class CBETA
   
   # @param id [String] 藏經 ID, 例如大正藏的 ID 是 "T"
   # @return [String] 藏經短名，例如 "大正藏"
-	def get_canon_nickname(id)
-		return nil unless @canon_nickname.key? id
-		@canon_nickname[id]
+  def get_canon_nickname(id)
+    return nil unless @canon_nickname.key? id
+    @canon_nickname[id]
   end
   
   # 取得藏經略符

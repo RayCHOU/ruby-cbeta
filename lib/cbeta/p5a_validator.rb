@@ -85,7 +85,7 @@ class CBETA::P5aValidator
     def check_well_form(xml)
       r = ''
       begin
-        doc = Nokogiri::XML(xml) { |config| config.strict }
+        Nokogiri::XML(xml) { |config| config.strict }
       rescue Nokogiri::XML::SyntaxError => e
         r = "caught exception: #{e}"
       end

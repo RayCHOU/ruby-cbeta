@@ -106,10 +106,7 @@ class CBETA::P5aToHTMLForEveryEdition
     text.gsub!(/(<a class='noteAnchor'[^>]*><\/a>)(<div class="lg-cell"[^>]*>)/, '\2\1')
     
     juans = text.split(/(<juan \d+>)/)
-    open = false
-    fo = nil
     juan_no = nil
-    fn = ''
     buf = ''
     # 一卷一檔
     juans.each { |j|
@@ -122,8 +119,7 @@ class CBETA::P5aToHTMLForEveryEdition
         buf = ''
       end
     }
-  end
-  
+  end  
   
   def convert_vol(vol)
     puts "convert volumn: #{vol}"
@@ -414,12 +410,12 @@ class CBETA::P5aToHTMLForEveryEdition
   def handle_lem(e)
     r = ''
     content = traverse(e)
-    w = e['wit']
-    if w.include? 'CBETA' and not w.include? @orig
+    wit = e['wit']
+    if wit.include? 'CBETA' and not wit.include? @orig
       n = @notes_dila[@juan].size + 1
       r = "<a class='noteAnchor dila' href='#dila_note#{n}'></a>"
       r += "<span class='cbeta'>%s</span>" % content
-      r = "<r w='#{w}' l='#{@lb}'>#{r}</r>"
+      r = "<r w='#{wit}' l='#{@lb}'>#{r}</r>"
 
       note = lem_note_cf(e)
       note += lem_note_rdg(e)
@@ -625,7 +621,6 @@ class CBETA::P5aToHTMLForEveryEdition
   
   def handle_rdg(e)
     r = traverse(e)
-    w = e['wit'].scan(/【.*?】/)
     "<r w='#{e['wit']}' l='#{@lb}' w='#{@char_count}'>#{r}</r>"
   end
 
@@ -788,16 +783,11 @@ class CBETA::P5aToHTMLForEveryEdition
   end
   
   def linehead_exist_in_cbeta(s)
-    @xml_root
-    corpus = s[0]
-    if s.match(/^(([A-Z]\d+)n\d+[a-zA-Z]?).*$/)
-      sutra = $1
-      vol = $2
-      path = File.join(@xml_root, corpus, vol, sutra+'.xml')
-      return File.exist? path
-    else
-      return false
-    end
+    fn = CBETA.linehead_to_xml_file_path(s)
+    return false if fn.nil?
+    
+    path = File.join(@xml_root, fn)
+    File.exist? path
   end
 
   def open_xml(fn)
@@ -872,10 +862,9 @@ class CBETA::P5aToHTMLForEveryEdition
     else
       work = @sutra_no.sub(/^([A-Z]{1,2})\d{2,3}n(.*)$/, '\1\2')
     end
-    canon = work[0]
     juan = "%03d" % juan_no
     folder = File.join(@out_folder, work, juan)
-    FileUtils.remove_dir(folder, force=true)
+    FileUtils.remove_dir(folder, true)
     FileUtils.makedirs folder
     
     @editions.each do |ed|

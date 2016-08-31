@@ -198,8 +198,6 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_anchor(e)
-    id = e['id']
-
     if e.has_attribute?('type')
       if e['type'] == 'circle'
         return '◎'
@@ -496,7 +494,6 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_note(e)
-    n = e['n']
     if e.has_attribute?('type')
       t = e['type']
       if %w(equivalent orig orig_biao orig_ke mod rest).include? t
@@ -640,7 +637,7 @@ class CBETA::P5aToHTMLForPDF
     @vol = vol
     @series = CBETA.get_canon_from_vol(vol)
     @out_folder = File.join(@out_root, @series, vol)
-    FileUtils.remove_dir(@out_folder, force=true)
+    FileUtils.remove_dir(@out_folder, true)
     FileUtils::mkdir_p @out_folder
     
     source = File.join(@xml_root, @series, vol)

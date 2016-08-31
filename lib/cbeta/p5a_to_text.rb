@@ -205,7 +205,6 @@ class CBETA::P5aToText
     
     g = @gaijis[gid]
     abort "Line:#{__LINE__} 無缺字資料:#{gid}" if g.nil?
-    zzs = g['zzs']
     
     if gid.start_with?('SD') # 悉曇字
       case gid
@@ -444,10 +443,7 @@ class CBETA::P5aToText
     FileUtils.makedirs @out_sutra
 
     juans = text.split(/(<juan \d+>)/)
-    open = false
-    fo = nil
     juan_no = nil
-    fn = ''
     buf = ''
     # 一卷一檔
     juans.each { |j|
@@ -490,7 +486,7 @@ class CBETA::P5aToText
     @vol = vol
     @canon = CBETA.get_canon_from_vol(vol)
     @out_vol = File.join(@output_root, @canon, vol)
-    FileUtils.remove_dir(@out_vol, force=true)
+    FileUtils.remove_dir(@out_vol, true)
     FileUtils.makedirs @out_vol
     
     source = File.join(@xml_root, @canon, vol)

@@ -103,7 +103,7 @@ class CBETA::HTMLToText
 
   def prepare_folder()
     folder = File.join(@out_root, @corpus, @vol)
-    FileUtils.remove_dir(folder, force=true)
+    FileUtils.remove_dir(folder, true)
     FileUtils.mkdir_p(folder)
     folder
   end

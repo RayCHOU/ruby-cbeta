@@ -540,10 +540,7 @@ class CBETA::P5aToHTML
     text.gsub!(/(<a class='noteAnchor'[^>]*><\/a>)(<div class="lg-cell"[^>]*>)/, '\2\1')
     
     juans = text.split(/(<juan \d+>)/)
-    open = false
-    fo = nil
     juan_no = nil
-    fn = ''
     buf = ''
     # 一卷一檔
     juans.each { |j|
@@ -620,7 +617,7 @@ class CBETA::P5aToHTML
     @vol = vol
     @series = CBETA.get_canon_from_vol(vol)
     @out_folder = File.join(@out_root, @series, vol)
-    FileUtils.remove_dir(@out_folder, force=true)
+    FileUtils.remove_dir(@out_folder, true)
     FileUtils::mkdir_p @out_folder
     
     source = File.join(@xml_root, @series, vol)
@@ -677,16 +674,11 @@ class CBETA::P5aToHTML
   end
   
   def linehead_exist_in_cbeta(s)
-    @xml_root
-    corpus = s[0]
-    if s.match(/^(([A-Z]\d+)n\d+[a-zA-Z]?).*$/)
-      sutra = $1
-      vol = $2
-      path = File.join(@xml_root, corpus, vol, sutra+'.xml')
-      return File.exist? path
-    else
-      return false
-    end
+    fn = CBETA.linehead_to_xml_file_path(s)
+    return false if fn.nil?
+    
+    path = File.join(@xml_root, fn)
+    File.exist? path
   end
 
   def open_xml(fn)

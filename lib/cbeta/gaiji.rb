@@ -75,7 +75,6 @@ class CBETA::Gaiji
   
   def char_to_hash(char)
     r = {}
-    id = char['id']
     field_mapping = {
       'big5' => 'big5',
       'Character in the Siddham font' => 'char_in_siddham_font',
