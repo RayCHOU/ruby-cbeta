@@ -618,7 +618,7 @@ class CBETA::P5aToHTML
     abort "未處理底本" if @orig.nil?
 
     @vol = vol
-    @series = vol[0]
+    @series = CBETA.get_canon_from_vol(vol)
     @out_folder = File.join(@out_root, @series, vol)
     FileUtils.remove_dir(@out_folder, force=true)
     FileUtils::mkdir_p @out_folder
@@ -631,7 +631,7 @@ class CBETA::P5aToHTML
 
   def handle_vols(v1, v2)
     puts "convert volumns: #{v1}..#{v2}"
-    @series = v1[0]
+    @series = CBETA.get_canon_from_vol(v1)
     folder = File.join(@xml_root, @series)
     Dir.foreach(folder) { |vol|
       next if vol < v1

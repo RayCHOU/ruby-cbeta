@@ -8,6 +8,13 @@ require 'csv'
 class CBETA
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = '.[]。，、？「」『』《》＜＞〈〉〔〕［］【】〖〗'
+
+  # 由 冊號 取得 藏經 ID
+  # @param vol[String] 冊號, 例如 "T01" 或 "GA009"
+  # @return [String] 藏經 ID，例如 "T" 或 "GA"
+  def self.get_canon_from_vol(vol)
+    vol.sub(/^(DA|GA|GB|[A-Z]).*$/, '\1')
+  end
   
   # 將行首資訊轉為引用格式
   #
@@ -68,7 +75,7 @@ class CBETA
     s = File.read(fn)
     @categories = JSON.parse(s)
   end
-
+  
   # @param id [String] 藏經 ID, 例如大正藏的 ID 是 "T"
   # @return [String] 藏經短名，例如 "大正藏"
 	def get_canon_nickname(id)

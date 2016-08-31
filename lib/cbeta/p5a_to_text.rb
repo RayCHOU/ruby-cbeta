@@ -70,8 +70,8 @@ class CBETA::P5aToText
     return convert_all if target.nil?
 
     arg = target.upcase
-    if arg.size == 1
-      handle_collection(arg)
+    if arg.size <= 2
+      handle_canon(arg)
     else
       if arg.include? '..'
         arg.match(/^([^\.]+?)\.\.([^\.]+)$/) {
@@ -124,7 +124,7 @@ class CBETA::P5aToText
   def convert_all
     Dir.entries(@xml_root).sort.each do |c|
       next unless c.match(/^[A-Z]$/)
-      handle_collection(c)
+      handle_canon(c)
     end
   end
 
@@ -138,7 +138,7 @@ class CBETA::P5aToText
     r
   end
   
-  def handle_anchor(e)
+  def e_anchor(e)
     if e.has_attribute?('type')
       if e['type'] == 'circle'
         return '◎'
@@ -148,53 +148,43 @@ class CBETA::P5aToText
     ''
   end
 
-  def handle_app(e)
+  def e_app(e)
     traverse(e)
   end
 
-  def handle_byline(e)
+  def e_byline(e)
     r = traverse(e)
     r += @settings[:format]=='app' ? "\t" : "\n"
     r
   end
 
-  def handle_cell(e)
+  def e_cell(e)
     r = traverse(e)
     r += @settings[:format]=='app' ? "\t" : "\n"
     r
   end
 
-  def handle_collection(c)
-    @series = c
-    puts 'handle_collection ' + c
-    folder = File.join(@xml_root, @series)
-    Dir.entries(folder).sort.each do |vol|
-      next if vol.start_with? '.'
-      handle_vol(vol)
-    end
-  end
-
-  def handle_corr(e)
+  def e_corr(e)
     "<r w='【CBETA】'>%s</r>" % traverse(e)
   end
 
-  def handle_div(e)
+  def e_div(e)
     traverse(e)
   end
 
-  def handle_docNumber(e)
+  def e_docNumber(e)
     r = traverse(e)
     r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
-  def handle_figure(e)
+  def e_figure(e)
     r = traverse(e)
     r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
-  def handle_g(e)
+  def e_g(e)
     # if 悉曇字、蘭札體
     #   使用 Unicode PUA
     # else if 有 <mapping type="unicode">
@@ -240,28 +230,28 @@ class CBETA::P5aToText
     [0xf0000 + gid[2..-1].to_i].pack 'U'
   end
 
-  def handle_graphic(e)
+  def e_graphic(e)
     ''
   end
 
-  def handle_head(e)
+  def e_head(e)
     r = traverse(e)
     r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
-  def handle_item(e)
+  def e_item(e)
     r = traverse(e)
     r += @settings[:format] == 'app' ? "\t" : "\n"
   end
 
-  def handle_juan(e)
+  def e_juan(e)
     r = traverse(e)
     r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
-  def handle_l(e)
+  def e_l(e)
     r = traverse(e)
     if @settings[:format] == 'app'
       r += "\t"
@@ -271,7 +261,7 @@ class CBETA::P5aToText
     r
   end
 
-  def handle_lb(e)
+  def e_lb(e)
     r = ''
     if @settings[:format] == 'app'
       r += "\n#{e['n']}║"
@@ -283,7 +273,7 @@ class CBETA::P5aToText
     r
   end
 
-  def handle_lem(e)
+  def e_lem(e)
     # 沒有 rdg 的版本，用字同 lem
     editions = Set.new @editions
     e.xpath('./following-sibling::rdg').each do |rdg|
@@ -296,17 +286,17 @@ class CBETA::P5aToText
     "<r w='#{w}'>%s</r>" % traverse(e)
   end
 
-  def handle_lg(e)
+  def e_lg(e)
     traverse(e)
   end
 
-  def handle_list(e)
+  def e_list(e)
     r = ''
     r += "\n" unless @settings[:format] == 'app'
     r + traverse(e)
   end
 
-  def handle_milestone(e)
+  def e_milestone(e)
     r = ''
     if e['unit'] == 'juan'
       @juan = e['n'].to_i
@@ -315,55 +305,11 @@ class CBETA::P5aToText
     r
   end
 
-  def handle_mulu(e)
+  def e_mulu(e)
     ''
   end
 
-  def handle_node(e)
-    return '' if e.comment?
-    return handle_text(e) if e.text?
-    return '' if PASS.include?(e.name)
-    r = case e.name
-    when 'anchor'    then handle_anchor(e)
-    when 'app'       then handle_app(e)
-    when 'back'      then ''
-    when 'byline'    then handle_byline(e)
-    when 'cell'      then handle_cell(e)
-    when 'corr'      then handle_corr(e)
-    when 'div'       then handle_div(e)
-    when 'docNumber' then handle_docNumber(e)
-    when 'figure'    then handle_figure(e)
-    when 'foreign'   then ''
-    when 'g'         then handle_g(e)
-    when 'graphic'   then handle_graphic(e)
-    when 'head'      then handle_head(e)
-    when 'item'      then handle_item(e)
-    when 'juan'      then handle_juan(e)
-    when 'l'         then handle_l(e)
-    when 'lb'        then handle_lb(e)
-    when 'lem'       then handle_lem(e)
-    when 'lg'        then handle_lg(e)
-    when 'list'      then handle_list(e)
-    when 'mulu'      then handle_mulu(e)
-    when 'note'      then handle_note(e)
-    when 'milestone' then handle_milestone(e)
-    when 'p'         then handle_p(e)
-    when 'rdg'       then handle_rdg(e)
-    when 'reg'       then ''
-    when 'row'       then handle_row(e)
-    when 'sic'       then handle_sic(e)
-    when 'sg'        then handle_sg(e)
-    when 'tt'        then handle_tt(e)
-    when 't'         then handle_t(e)
-    when 'table'     then handle_table(e)
-    when 'teiHeader' then ''
-    when 'unclear'   then '▆'
-    else traverse(e)
-    end
-    r
-  end
-
-  def handle_note(e)
+  def e_note(e)
     if e.has_attribute?('place') && e['place']=='inline'
       r = traverse(e)
       return "（#{r}）"
@@ -371,26 +317,106 @@ class CBETA::P5aToText
     ''
   end
 
-  def handle_p(e)
+  def e_p(e)
     r = traverse(e)
     r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
 
-  def handle_rdg(e)
+  def e_rdg(e)
     "<r w='#{e['wit']}'>%s</r>" % traverse(e)
   end
 
-  def handle_row(e)
+  def e_row(e)
     traverse(e)
   end
 
-  def handle_sg(e)
+  def e_sg(e)
     '(' + traverse(e) + ')'
   end
 
-  def handle_sic(e)
+  def e_sic(e)
     "<r w='#{@orig}'>" + traverse(e) + "</r>"
+  end
+
+  def e_t(e)
+    if e.has_attribute? 'place'
+      return '' if e['place'].include? 'foot'
+    end
+    r = traverse(e)
+
+    # 不是雙行對照
+    return r if @tt_type == 'app'
+
+    # 處理雙行對照
+    i = e.xpath('../t').index(e)
+    case i
+    when 0
+      return r + '　'
+    when 1
+      @next_line_buf += r + '　'
+      return ''
+    else
+      return r
+    end
+  end
+
+  def e_table(e)
+    traverse(e)
+  end
+
+  def handle_canon(c)
+    @canon = c
+    puts 'handle_canon ' + c
+    folder = File.join(@xml_root, @canon)
+    Dir.entries(folder).sort.each do |vol|
+      next if vol.start_with? '.'
+      handle_vol(vol)
+    end
+  end
+
+  def handle_node(e)
+    return '' if e.comment?
+    return handle_text(e) if e.text?
+    return '' if PASS.include?(e.name)
+    r = case e.name
+    when 'anchor'    then e_anchor(e)
+    when 'app'       then e_app(e)
+    when 'back'      then ''
+    when 'byline'    then e_byline(e)
+    when 'cell'      then e_cell(e)
+    when 'corr'      then e_corr(e)
+    when 'div'       then e_div(e)
+    when 'docNumber' then e_docNumber(e)
+    when 'figure'    then e_figure(e)
+    when 'foreign'   then ''
+    when 'g'         then e_g(e)
+    when 'graphic'   then e_graphic(e)
+    when 'head'      then e_head(e)
+    when 'item'      then e_item(e)
+    when 'juan'      then e_juan(e)
+    when 'l'         then e_l(e)
+    when 'lb'        then e_lb(e)
+    when 'lem'       then e_lem(e)
+    when 'lg'        then e_lg(e)
+    when 'list'      then e_list(e)
+    when 'mulu'      then e_mulu(e)
+    when 'note'      then e_note(e)
+    when 'milestone' then e_milestone(e)
+    when 'p'         then e_p(e)
+    when 'rdg'       then e_rdg(e)
+    when 'reg'       then ''
+    when 'row'       then e_row(e)
+    when 'sic'       then e_sic(e)
+    when 'sg'        then e_sg(e)
+    when 'tt'        then e_tt(e)
+    when 't'         then e_t(e)
+    when 'table'     then e_table(e)
+    when 'teiHeader' then ''
+    when 'unclear'   then '▆'
+    else traverse(e)
+    end
+    r
   end
 
   def handle_sutra(xml_fn)
@@ -438,32 +464,6 @@ class CBETA::P5aToText
     }
   end
 
-  def handle_t(e)
-    if e.has_attribute? 'place'
-      return '' if e['place'].include? 'foot'
-    end
-    r = traverse(e)
-
-    # 不是雙行對照
-    return r if @tt_type == 'app'
-
-    # 處理雙行對照
-    i = e.xpath('../t').index(e)
-    case i
-    when 0
-      return r + '　'
-    when 1
-      @next_line_buf += r + '　'
-      return ''
-    else
-      return r
-    end
-  end
-
-  def handle_table(e)
-    traverse(e)
-  end
-
   def handle_text(e)
     s = e.content().chomp
     return '' if s.empty?
@@ -476,7 +476,7 @@ class CBETA::P5aToText
     CGI.escapeHTML(r)
   end
 
-  def handle_tt(e)
+  def e_tt(e)
     @tt_type = e['type']
     traverse(e)
   end
@@ -488,12 +488,12 @@ class CBETA::P5aToText
     abort "未處理底本" if @orig.nil?
 
     @vol = vol
-    @series = vol[0]
-    @out_vol = File.join(@output_root, @series, vol)
+    @canon = CBETA.get_canon_from_vol(vol)
+    @out_vol = File.join(@output_root, @canon, vol)
     FileUtils.remove_dir(@out_vol, force=true)
     FileUtils.makedirs @out_vol
     
-    source = File.join(@xml_root, @series, vol)
+    source = File.join(@xml_root, @canon, vol)
     Dir.entries(source).sort.each { |f|
       next if f.start_with? '.'
       fn = File.join(source, f)
@@ -503,8 +503,8 @@ class CBETA::P5aToText
 
   def handle_vols(v1, v2)
     puts "convert volumns: #{v1}..#{v2}"
-    @series = v1[0]
-    folder = File.join(@xml_root, @series)
+    @canon = get_canon_from_vol(v1)
+    folder = File.join(@xml_root, @canon)
     Dir.entries(folder).sort.each do |vol|
       next if vol < v1
       next if vol > v2

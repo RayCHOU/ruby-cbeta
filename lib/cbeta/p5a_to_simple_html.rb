@@ -324,7 +324,7 @@ class CBETA::P5aToSimpleHTML
     @orig_short = @orig.sub(/^【(.*)】$/, '\1')
 
     @vol = vol
-    @series = vol[0]
+    @series = CBETA.get_canon_from_vol(vol)
     @out_vol = File.join(@output_root, @series, vol)
     FileUtils.remove_dir(@out_vol, force=true)
     FileUtils.makedirs @out_vol
@@ -337,7 +337,7 @@ class CBETA::P5aToSimpleHTML
 
   def handle_vols(v1, v2)
     puts "convert volumns: #{v1}..#{v2}"
-    @series = v1[0]
+    @series = CBETA.get_canon_from_vol(v1)
     folder = File.join(@xml_root, @series)
     Dir.foreach(folder) { |vol|
       next if vol < v1
