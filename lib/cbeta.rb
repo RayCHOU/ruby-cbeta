@@ -42,6 +42,18 @@ class CBETA
     fn.sub(/^(#{CANON})\d{2,3}n(.*)$/, '\1\2')
   end
   
+  # 由「藏經 ID」取得「排序用編號」，例如：傳入 "T" 回傳 "A"；傳入 "X" 回傳 "B"
+  # @param canon [String] 藏經 ID
+  # @return [String] 排序用編號
+  def self.get_sort_order_from_canon_id(canon)
+    # CBETA 提供，惠敏法師最後決定的全文檢索順序表, 2016-06-03
+    table = %w(T X A K S F C D U P J L G M N H I W B GA GB)    
+    i = table.index(canon)
+    abort "unknown canon id: #{canon}" if i.nil?
+    
+    (i + 'A'.ord).chr
+  end
+  
   # 將行首資訊轉為引用格式
   #
   # @param linehead [String] 行首資訊, 例如：T85n2838_p1291a03
@@ -55,6 +67,23 @@ class CBETA
       return "#{$1}, no. #{$2}, p. #{$3}, #{$4}"
     }
     nil
+  end
+  
+  def self.normalize_vol(vol)
+    if vol.match(/^(#{CANON})(.*)$/)
+      canon = $1
+      vol = $2
+    
+      if %w[A C G GA GB L M P U].include? canon
+        # 這些藏經的冊號是三碼
+        vol_len = 3
+      else
+        vol_len = 2      
+      end
+      canon + vol.rjust(vol_len, '0')
+    else
+      abort "unknown vol format: #{vol}"
+    end
   end
   
   def self.open_xml(fn)
@@ -80,7 +109,7 @@ class CBETA
     i = 0xFA000 + gid[-4..-1].hex
     [i].pack("U")
   end
-
+  
 	# 載入藏經資料
   def initialize()
     fn = File.join(File.dirname(__FILE__), 'data/canons.csv')
