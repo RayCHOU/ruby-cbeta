@@ -8,7 +8,7 @@ require 'csv'
 class CBETA
   CANON = 'DA|GA|GB|[A-Z]'
   DATA = File.join(File.dirname(__FILE__), 'data')
-  PUNCS = '.[]。，、？「」『』《》＜＞〈〉〔〕［］【】〖〗'
+  PUNCS = '.[]。，、；？：「」『』《》＜＞〈〉〔〕［］【】〖〗'
 
   # 由 行首資訊 取得 藏經 ID
   # @param linehead[String] 行首資訊, 例如 "T01n0001_p0001a01" 或 "GA009n0008_p0003a01"
@@ -22,6 +22,14 @@ class CBETA
   # @return [String] 藏經 ID，例如 "T" 或 "GA"
   def self.get_canon_from_vol(vol)
     vol.sub(/^(#{CANON}).*$/, '\1')
+  end
+  
+  # 由 冊號 及 典籍編號 取得 XML 主檔名
+  # @param vol[String] 冊號, 例如 "T01" 或 "GA009"
+  # @param work[String] 典籍編號, 例如 "T0001" 或 "GA0008"
+  # @return [String] XML主檔名，例如 "T01n0001" 或 "GA009n0008"
+  def self.get_xml_file_from_vol_and_work(vol, work)
+    vol + 'n' + work.sub(/^(#{CANON})(.*)$/, '\2')
   end
   
   # 由 行首資訊 取得 XML檔相對路徑
@@ -39,7 +47,9 @@ class CBETA
   # @param fn[String] 檔名, 例如 "T01n0001" 或 "GA009n0008"
   # @return [String] 典籍編號，例如 "T0001" 或 "GA0008"
   def self.get_work_id_from_file_basename(fn)
-    fn.sub(/^(#{CANON})\d{2,3}n(.*)$/, '\1\2')
+    r = fn.sub(/^(#{CANON})\d{2,3}n(.*)$/, '\1\2')
+    r = 'T0220' if r.start_with? 'T0220'
+    r
   end
   
   # 由「藏經 ID」取得「排序用編號」，例如：傳入 "T" 回傳 "A"；傳入 "X" 回傳 "B"
