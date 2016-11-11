@@ -533,6 +533,10 @@ class CBETA::P5aToHTML
     @next_line_buf = ''
     @open_divs = []
     @sutra_no = File.basename(xml_fn, ".xml")
+    
+    if @sutra_no.match(/^(T05|T06|T07)n0220/)
+      @sutra_no = "#{$1}n0220"
+    end    
 
     text = parse_xml(xml_fn)
 
@@ -752,11 +756,12 @@ class CBETA::P5aToHTML
   end
   
   def write_juan(juan_no, body)
-    if @sutra_no.match(/^(T05|T06|T07)n0220/)
-      fn = "#{$1}n0220_%03d.htm" % juan_no
-    else
-      fn = "#{@sutra_no}_%03d.htm" % juan_no
-    end
+    #if @sutra_no.match(/^(T05|T06|T07)n0220/)
+    #  fn = "#{$1}n0220_%03d.htm" % juan_no
+    #else
+    #  fn = "#{@sutra_no}_%03d.htm" % juan_no
+    #end
+    fn = "#{@sutra_no}_%03d.htm" % juan_no
     
     html = <<eos
 <html>

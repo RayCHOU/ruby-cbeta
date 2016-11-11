@@ -6,7 +6,7 @@
 require 'csv'
 
 class CBETA
-  CANON = 'DA|GA|GB|[A-Z]'
+  CANON = 'DA|GA|GB|ZS|ZW|[A-Z]'
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = '.[]。，、；？：「」『』《》＜＞〈〉〔〕［］【】〖〗'
 
