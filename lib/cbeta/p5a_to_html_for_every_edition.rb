@@ -72,7 +72,7 @@ class CBETA::P5aToHTMLForEveryEdition
 
   def convert_all
     Dir.entries(@xml_root).sort.each do |c|
-      next unless c.match(/^[A-Z]$/)
+      next unless c.match(/^#{CBETA.CANON}$/)
       convert_canon(c)
     end
   end
@@ -123,8 +123,9 @@ class CBETA::P5aToHTMLForEveryEdition
   
   def convert_vol(vol)
     puts "convert volumn: #{vol}"
-
-    @orig = @cbeta.get_canon_symbol(vol[0])
+    
+    canon = CBETA.get_canon_from_vol(vol)
+    @orig = @cbeta.get_canon_symbol(canon)
     abort "未處理底本" if @orig.nil?
     @orig_short = @orig.sub(/^【(.*)】$/, '\1')
 

@@ -123,7 +123,7 @@ class CBETA::P5aToText
 
   def convert_all
     Dir.entries(@xml_root).sort.each do |c|
-      next unless c.match(/^[A-Z]$/)
+      next unless c.match(/^#{CBETA.CANON}$/)
       handle_canon(c)
     end
   end
@@ -480,11 +480,11 @@ class CBETA::P5aToText
   def handle_vol(vol)
     puts "convert volumn: #{vol}"
 
-    @orig = @cbeta.get_canon_symbol(vol[0])
+    @canon = CBETA.get_canon_from_vol(vol)
+    @orig = @cbeta.get_canon_symbol(@canon)
     abort "未處理底本" if @orig.nil?
 
     @vol = vol
-    @canon = CBETA.get_canon_from_vol(vol)
     @out_vol = File.join(@output_root, @canon, vol)
     FileUtils.remove_dir(@out_vol, true)
     FileUtils.makedirs @out_vol

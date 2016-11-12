@@ -7,6 +7,7 @@ require 'csv'
 
 class CBETA
   CANON = 'DA|GA|GB|ZS|ZW|[A-Z]'
+  SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB)
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = '.[]。，、；？：「」『』《》＜＞〈〉〔〕［］【】〖〗'
 
@@ -17,6 +18,13 @@ class CBETA
     linehead.sub(/^(#{CANON}).*$/, '\1')
   end
 
+  # 由 典籍編號 取得 藏經 ID
+  # @param work[String] 典籍編號, 例如 "T0001" 或 "ZW0001"
+  # @return [String] 藏經 ID，例如 "T" 或 "ZW"
+  def self.get_canon_id_from_work_id(work)
+    work.sub(/^(#{CANON}).*$/, '\1')
+  end
+  
   # 由 冊號 取得 藏經 ID
   # @param vol[String] 冊號, 例如 "T01" 或 "GA009"
   # @return [String] 藏經 ID，例如 "T" 或 "GA"
@@ -57,8 +65,7 @@ class CBETA
   # @return [String] 排序用編號
   def self.get_sort_order_from_canon_id(canon)
     # CBETA 提供，惠敏法師最後決定的全文檢索順序表, 2016-06-03
-    table = %w(T X A K S F C D U P J L G M N H I W B GA GB)    
-    i = table.index(canon)
+    i = SORT_ORDER.index(canon)
     abort "unknown canon id: #{canon}" if i.nil?
     
     (i + 'A'.ord).chr
