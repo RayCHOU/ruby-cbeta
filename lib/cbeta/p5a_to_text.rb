@@ -26,6 +26,7 @@ class CBETA::P5aToText
   # @option opts [String] :format 輸出格式，例：'app'，預設是 normal
   # @option opts [String] :encoding 輸出編碼，預設 'UTF-8'
   # @option opts [String] :gaiji 缺字處理方式，預設 'default'
+  # @option opts [String] :inline_note 是否呈現夾註，預設為 true
   #   * 'PUA': 缺字一律使用 Unicode PUA
   #   * 'default': 優先使用通用字
   def initialize(xml_root, output_root, opts={})
@@ -35,7 +36,8 @@ class CBETA::P5aToText
     @settings = {
       format: nil,
       encoding: 'UTF-8',
-      gaiji: 'default'
+      gaiji: 'default',
+      inline_note: true
     }
     @settings.merge!(opts)
     
@@ -309,6 +311,8 @@ class CBETA::P5aToText
   end
 
   def e_note(e)
+    return '' unless @settings[:inline_note]
+    
     if e.has_attribute?('place') && e['place']=='inline'
       r = traverse(e)
       return "（#{r}）"
