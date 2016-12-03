@@ -43,37 +43,17 @@ class CBETA::P5aToHTMLForPDF
 
   # 將 CBETA XML P5a 轉為 HTML 供轉為 PDF
   #
-  # @example for convert 大正藏第一冊:
-  #
-  #   c = CBETA::P5aToHTMLForPDF.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
-  #   c.convert('T01')
-  #
   # @example for convert 大正藏全部:
   #
   #   c = CBETA::P5aToHTMLForPDF.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
   #   c.convert('T')
-  #
-  # @example for convert 大正藏第五冊至第七冊:
-  #
-  #   c = CBETA::P5aToHTMLForPDF.new('/PATH/TO/CBETA/XML/P5a', '/OUTPUT/FOLDER')
-  #   c.convert('T05..T07')
   #
   # T 是大正藏的 ID, CBETA 的藏經 ID 系統請參考: http://www.cbeta.org/format/id.php
   def convert(target=nil)
     return convert_all if target.nil?
 
     arg = target.upcase
-    if arg.size <= 2
-      convert_collection(arg)
-    else
-      if arg.include? '..'
-        arg.match(/^([^\.]+?)\.\.([^\.]+)$/) {
-          handle_vols($1, $2)
-        }
-      else
-        handle_vol(arg)
-      end
-    end
+    convert_collection(arg)
   end
 
   private
@@ -129,7 +109,10 @@ class CBETA::P5aToHTMLForPDF
   
   def convert_collection(c)
     @series = c
-    puts 'handle_collection ' + c
+    puts 'convert_collection ' + c
+    
+    @orig = @cbeta.get_canon_abbr(c)
+    
     folder = File.join(@xml_root, @series)
     @works = {}
     prepare_work_list(folder)
@@ -385,13 +368,14 @@ class CBETA::P5aToHTMLForPDF
   end
 
   def handle_lem(e)
-    r = ''
+    r = nil
     w = e['wit']
-    if w.include? 'CBETA' and not w.include? @orig
-      r = "<span class='corr'>%s</span>" % traverse(e)
-    else
-      r = traverse(e)
+    if e.key? 'wit'
+      if (w.include? 'CBETA') and (not w.include? @orig)
+        r = "<span class='corr'>%s</span>" % traverse(e)
+      end
     end
+    r = traverse(e) if r.nil?
     r
   end
 
@@ -633,6 +617,7 @@ class CBETA::P5aToHTMLForPDF
 
     @orig = @cbeta.get_canon_abbr(vol[0])
     abort "未處理底本" if @orig.nil?
+    puts "#{__LINE__} orig: #{@orig}"
 
     @vol = vol
     @series = CBETA.get_canon_from_vol(vol)
