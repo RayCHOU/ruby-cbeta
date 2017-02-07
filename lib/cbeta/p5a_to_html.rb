@@ -72,7 +72,7 @@ class CBETA::P5aToHTML
     }
   end
 
-  def handle_anchor(e)
+  def e_anchor(e)
     id = e['id']
     if e.has_attribute?('id')
       if id.start_with?('nkr_note_orig')
@@ -95,7 +95,7 @@ class CBETA::P5aToHTML
     ''
   end
 
-  def handle_app(e)
+  def e_app(e)
     r = ''
     if e['type'] == 'star'
       c = e['corresp'][1..-1]
@@ -104,14 +104,14 @@ class CBETA::P5aToHTML
     r + traverse(e)
   end
 
-  def handle_byline(e)
+  def e_byline(e)
     r = '<p class="byline">'
     r += "<span class='lineInfo' line='#{@lb}'></span>"
     r += traverse(e)
     r + '</p>'
   end
 
-  def handle_cell(e)
+  def e_cell(e)
     doc = Nokogiri::XML::Document.new
     cell = doc.create_element('div')
     cell['class'] = 'bip-table-cell'
@@ -121,17 +121,7 @@ class CBETA::P5aToHTML
     to_html(cell)
   end
 
-  def handle_collection(c)
-    @series = c
-    puts 'handle_collection ' + c
-    folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
-      next if ['.', '..', '.DS_Store'].include? vol
-      handle_vol(vol)
-    }
-  end
-
-  def handle_corr(e)
+  def e_corr(e)
     r = ''
     if e.parent.name == 'choice'
       sic = e.parent.at_xpath('sic')
@@ -152,7 +142,7 @@ class CBETA::P5aToHTML
     r + "<span class='cbeta'>%s</span>" % traverse(e)
   end
 
-  def handle_div(e)
+  def e_div(e)
     @div_count += 1
     n = @div_count
     if e.has_attribute? 'type'
@@ -165,11 +155,11 @@ class CBETA::P5aToHTML
     end
   end
 
-  def handle_figure(e)
+  def e_figure(e)
     "<p class='figure'>%s</p>" % traverse(e)
   end
 
-  def handle_g(e, mode)
+  def e_g(e, mode)
     # if 有 <mapping type="unicode">
     #   if 不在 Unicode Extension C, D, E 範圍裡
     #     直接採用
@@ -244,12 +234,12 @@ class CBETA::P5aToHTML
     "<a class='gaijiAnchor' href='##{gid}'>#{default}</a>"
   end
 
-  def handle_graphic(e)
+  def e_graphic(e)
     url = File.basename(e['url'])
     "<span imgsrc='#{url}' class='graphic'></span>"
   end
 
-  def handle_head(e)
+  def e_head(e)
     r = ''
     unless e['type'] == 'added'
       i = @open_divs.size
@@ -258,15 +248,15 @@ class CBETA::P5aToHTML
     r
   end
 
-  def handle_item(e)
+  def e_item(e)
     "<li>%s</li>\n" % traverse(e)
   end
 
-  def handle_juan(e)
+  def e_juan(e)
     "<p class='juan'>%s</p>" % traverse(e)
   end
 
-  def handle_l(e)
+  def e_l(e)
     if @lg_type == 'abnormal'
       return traverse(e)
     end
@@ -301,13 +291,13 @@ class CBETA::P5aToHTML
     r
   end
 
-  def handle_lb(e)
+  def e_lb(e)
     # 卍續藏有 X 跟 R 兩種 lb, 只處理 X
     return '' if e['ed'] != @series
 
     @char_count = 1
     @lb = e['n']
-    line_head = @sutra_no + '_p' + @lb
+    line_head = CBETA.get_linehead(@sutra_no, @lb)
     
     r = ''
     #if e.parent.name == 'lg' and $lg_row_open
@@ -326,7 +316,7 @@ class CBETA::P5aToHTML
     r
   end
 
-  def handle_lem(e)
+  def e_lem(e)
     r = ''
     w = e['wit']
     if w.include? 'CBETA' and not w.include? @orig
@@ -343,7 +333,7 @@ class CBETA::P5aToHTML
     r
   end
 
-  def handle_lg(e)
+  def e_lg(e)
     r = ''
     @lg_type = e['type']
     if @lg_type == 'abnormal'
@@ -368,11 +358,11 @@ class CBETA::P5aToHTML
     r
   end
 
-  def handle_list(e)
+  def e_list(e)
     "<ul>%s</ul>" % traverse(e)
   end
 
-  def handle_milestone(e)
+  def e_milestone(e)
     r = ''
     if e['unit'] == 'juan'
 
@@ -387,7 +377,7 @@ class CBETA::P5aToHTML
     r
   end
 
-  def handle_mulu(e)
+  def e_mulu(e)
     r = ''
     if e['type'] == '品'
       @pass << false
@@ -396,49 +386,8 @@ class CBETA::P5aToHTML
     end
     r
   end
-
-  def handle_node(e, mode)
-    return '' if e.comment?
-    return handle_text(e, mode) if e.text?
-    return '' if PASS.include?(e.name)
-    r = case e.name
-    when 'anchor'    then handle_anchor(e)
-    when 'app'       then handle_app(e)
-    when 'byline'    then handle_byline(e)
-    when 'cell'      then handle_cell(e)
-    when 'corr'      then handle_corr(e)
-    when 'div'       then handle_div(e)
-    when 'figure'    then handle_figure(e)
-    when 'foreign'   then ''
-    when 'g'         then handle_g(e, mode)
-    when 'graphic'   then handle_graphic(e)
-    when 'head'      then handle_head(e)
-    when 'item'      then handle_item(e)
-    when 'juan'      then handle_juan(e)
-    when 'l'         then handle_l(e)
-    when 'lb'        then handle_lb(e)
-    when 'lem'       then handle_lem(e)
-    when 'lg'        then handle_lg(e)
-    when 'list'      then handle_list(e)
-    when 'mulu'      then handle_mulu(e)
-    when 'note'      then handle_note(e)
-    when 'milestone' then handle_milestone(e)
-    when 'p'         then handle_p(e)
-    when 'rdg'       then ''
-    when 'reg'       then ''
-    when 'row'       then handle_row(e)
-    when 'sic'       then ''
-    when 'sg'        then handle_sg(e)
-    when 't'         then handle_t(e)
-    when 'tt'        then handle_tt(e)
-    when 'table'     then handle_table(e)
-    when 'unclear'   then handle_unclear(e)
-    else traverse(e)
-    end
-    r
-  end
-
-  def handle_note(e)
+  
+  def e_note(e)
     n = e['n']
     if e.has_attribute?('type')
       t = e['type']
@@ -478,6 +427,111 @@ class CBETA::P5aToHTML
     end
     r
   end
+  
+  def e_p(e)
+    if e.key? 'type'
+      r = "<p class='%s'>" % e['type']
+    else
+      r = '<p>'
+    end
+    r += "<span class='lineInfo' line='#{@lb}'></span>"
+    r += traverse(e)
+    r + '</p>'
+  end
+
+  def e_row(e)
+    "<div class='bip-table-row'>" + traverse(e) + "</div>"
+  end
+
+  def e_sg(e)
+    '(' + traverse(e) + ')'
+  end
+  
+  def e_t(e)
+    if e.has_attribute? 'place'
+      return '' if e['place'].include? 'foot'
+    end
+    r = traverse(e)
+
+    # <tt type="app"> 不是 悉漢雙行對照
+    return r if @tt_type == 'app'
+
+    # 處理雙行對照
+    i = e.xpath('../t').index(e)
+    case i
+    when 0
+      return r + '　'
+    when 1
+      @next_line_buf += r + '　'
+      return ''
+    else
+      return r
+    end
+  end
+
+  def e_tt(e)
+    @tt_type = e['type']
+    traverse(e)
+  end
+
+  def e_table(e)
+    "<div class='bip-table'>" + traverse(e) + "</div>"
+  end
+  
+  def e_unclear(e)
+    '▆'
+  end
+
+  def handle_collection(c)
+    @series = c
+    puts 'handle_collection ' + c
+    folder = File.join(@xml_root, @series)
+    Dir.foreach(folder) { |vol|
+      next if ['.', '..', '.DS_Store'].include? vol
+      handle_vol(vol)
+    }
+  end
+
+  def handle_node(e, mode)
+    return '' if e.comment?
+    return handle_text(e, mode) if e.text?
+    return '' if PASS.include?(e.name)
+    r = case e.name
+    when 'anchor'    then e_anchor(e)
+    when 'app'       then e_app(e)
+    when 'byline'    then e_byline(e)
+    when 'cell'      then e_cell(e)
+    when 'corr'      then e_corr(e)
+    when 'div'       then e_div(e)
+    when 'figure'    then e_figure(e)
+    when 'foreign'   then ''
+    when 'g'         then e_g(e, mode)
+    when 'graphic'   then e_graphic(e)
+    when 'head'      then e_head(e)
+    when 'item'      then e_item(e)
+    when 'juan'      then e_juan(e)
+    when 'l'         then e_l(e)
+    when 'lb'        then e_lb(e)
+    when 'lem'       then e_lem(e)
+    when 'lg'        then e_lg(e)
+    when 'list'      then e_list(e)
+    when 'mulu'      then e_mulu(e)
+    when 'note'      then e_note(e)
+    when 'milestone' then e_milestone(e)
+    when 'p'         then e_p(e)
+    when 'rdg'       then ''
+    when 'reg'       then ''
+    when 'row'       then e_row(e)
+    when 'sic'       then ''
+    when 'sg'        then e_sg(e)
+    when 't'         then e_t(e)
+    when 'tt'        then e_tt(e)
+    when 'table'     then e_table(e)
+    when 'unclear'   then e_unclear(e)
+    else traverse(e)
+    end
+    r
+  end
 
   def handle_note_orig(e, anchor_type=nil)
     n = e['n']
@@ -499,25 +553,6 @@ class CBETA::P5aToHTML
     end
     
     return "<a class='noteAnchor #{c}' href='#n#{n}'#{label}></a>"
-  end
-
-  def handle_p(e)
-    if e.key? 'type'
-      r = "<p class='%s'>" % e['type']
-    else
-      r = '<p>'
-    end
-    r += "<span class='lineInfo' line='#{@lb}'></span>"
-    r += traverse(e)
-    r + '</p>'
-  end
-
-  def handle_row(e)
-    "<div class='bip-table-row'>" + traverse(e) + "</div>"
-  end
-
-  def handle_sg(e)
-    '(' + traverse(e) + ')'
   end
 
   def handle_sutra(xml_fn)
@@ -558,37 +593,6 @@ class CBETA::P5aToHTML
     }
   end
 
-  def handle_t(e)
-    if e.has_attribute? 'place'
-      return '' if e['place'].include? 'foot'
-    end
-    r = traverse(e)
-
-    # <tt type="app"> 不是 悉漢雙行對照
-    return r if @tt_type == 'app'
-
-    # 處理雙行對照
-    i = e.xpath('../t').index(e)
-    case i
-    when 0
-      return r + '　'
-    when 1
-      @next_line_buf += r + '　'
-      return ''
-    else
-      return r
-    end
-  end
-
-  def handle_tt(e)
-    @tt_type = e['type']
-    traverse(e)
-  end
-
-  def handle_table(e)
-    "<div class='bip-table'>" + traverse(e) + "</div>"
-  end
-
   def handle_text(e, mode)
     s = e.content().chomp
     return '' if s.empty?
@@ -606,10 +610,6 @@ class CBETA::P5aToHTML
       @char_count += r.size
     end
     r
-  end
-
-  def handle_unclear(e)
-    '▆'
   end
   
   def handle_vol(vol)
@@ -743,7 +743,11 @@ class CBETA::P5aToHTML
   end
 
   def to_html(e)
-    e.to_xml(encoding: 'UTF-8', :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
+    e.to_xml(
+      encoding: 'UTF-8',
+      save_with: Nokogiri::XML::Node::SaveOptions::AS_XML |
+                 Nokogiri::XML::Node::SaveOptions::NO_EMPTY_TAGS
+    )
   end
 
   def traverse(e, mode='html')

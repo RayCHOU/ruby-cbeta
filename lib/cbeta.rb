@@ -32,6 +32,17 @@ class CBETA
     vol.sub(/^(#{CANON}).*$/, '\1')
   end
   
+  # @param file_basename[String] XML檔主檔名, 例如 "T01n0001" 或 "T25n1510a"
+  # @param lb[String] 例如 "0001a01" 或 "0757b29"
+  # @return [String] CBETA 行首資訊，例如 "T01n0001_p0001a01" 或 "T25n1510ap0757b29"
+  def self.get_linehead(file_basename, lb)
+    r = file_basename
+    r = 'T0220' if r.start_with? 'T0220'
+    r += '_' if file_basename.match(/\d$/)
+    r += 'p' + lb
+    r
+  end
+  
   # 由 冊號 及 典籍編號 取得 XML 主檔名
   # @param vol[String] 冊號, 例如 "T01" 或 "GA009"
   # @param work[String] 典籍編號, 例如 "T0001" 或 "GA0008"
