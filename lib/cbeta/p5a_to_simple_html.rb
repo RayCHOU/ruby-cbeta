@@ -3,6 +3,7 @@ require 'fileutils'
 require 'json'
 require 'nokogiri'
 require 'set'
+require_relative 'cbeta_share'
 
 # Convert CBETA XML P5a to simple HTML
 #
@@ -69,6 +70,8 @@ class CBETA::P5aToSimpleHTML
   end
 
   private
+  
+  include CbetaShare
 
   def convert_all
     Dir.entries(@xml_root).sort.each { |c|
@@ -145,7 +148,7 @@ class CBETA::P5aToSimpleHTML
 
   def handle_lb(e)
     @lb = e['n']
-    r = "<a id='lb#{@lb}'/>"
+    r = %(<a id="lb#{@lb}"></a>)
     unless @next_line_buf.empty?
       r += @next_line_buf + "\n"
       @next_line_buf = ''
@@ -169,7 +172,7 @@ class CBETA::P5aToSimpleHTML
     if e['unit'] == 'juan'
       @juan = e['n'].to_i
       r += "<juan #{@juan}>"
-      r += "<a id='lb#{@lb}'/>" unless @lb.nil?
+      r += %(<a id="lb#{@lb}"></a>) unless @lb.nil?
     end
     r
   end
@@ -410,7 +413,4 @@ class CBETA::P5aToSimpleHTML
     File.write(fn, text)
   end
 
-  def to_html(e)
-    e.to_xml(encoding: 'UTF-8', :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
-  end
 end

@@ -4,6 +4,7 @@ require 'fileutils'
 require 'json'
 require 'nokogiri'
 require 'set'
+require_relative 'cbeta_share'
 
 # Convert CBETA XML P5a to HTML for every edition
 #
@@ -51,6 +52,8 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   private
+  
+  include CbetaShare
   
   def before_parse_xml(xml_fn)
     @back = { 0 => '' }
@@ -850,10 +853,6 @@ class CBETA::P5aToHTMLForEveryEdition
   def progress(msg)
     puts Time.now.strftime("%Y-%m-%d %H:%M:%S")
     puts msg
-  end
-
-  def to_html(e)
-    e.to_xml(encoding: 'UTF-8', :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
   end
 
   def traverse(e, mode='html')

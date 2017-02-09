@@ -5,6 +5,7 @@ require 'json'
 require 'nokogiri'
 require 'set'
 require 'erb'
+require_relative 'cbeta_share'
 
 # Convert CBETA XML P5a to HTML for PDF
 #
@@ -57,6 +58,8 @@ class CBETA::P5aToHTMLForPDF
   end
 
   private
+  
+  include CbetaShare
   
   def before_convert_work(work_id)
     @nav_doc = Nokogiri::XML('<ul></ul>')
@@ -727,10 +730,6 @@ class CBETA::P5aToHTMLForPDF
         prepare_work_list(p1)
       end
     end
-  end
-
-  def to_html(e)
-    e.to_xml(encoding: 'UTF-8', :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
   end
 
   def traverse(e, mode='html')

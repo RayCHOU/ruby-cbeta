@@ -4,6 +4,7 @@ require 'fileutils'
 require 'json'
 require 'nokogiri'
 require 'set'
+require_relative 'cbeta_share'
 
 # Convert CBETA XML P5a to HTML
 #
@@ -64,6 +65,8 @@ class CBETA::P5aToHTML
   end
 
   private
+  
+  include CbetaShare
 
   def convert_all
     Dir.foreach(@xml_root) { |c|
@@ -740,14 +743,6 @@ class CBETA::P5aToHTML
 
     text = traverse(body)
     text
-  end
-
-  def to_html(e)
-    e.to_xml(
-      encoding: 'UTF-8',
-      save_with: Nokogiri::XML::Node::SaveOptions::AS_XML |
-                 Nokogiri::XML::Node::SaveOptions::NO_EMPTY_TAGS
-    )
   end
 
   def traverse(e, mode='html')
