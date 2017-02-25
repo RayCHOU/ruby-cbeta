@@ -489,7 +489,7 @@ class CBETA::P5aToHTML
     @series = c
     puts 'handle_collection ' + c
     folder = File.join(@xml_root, @series)
-    Dir.foreach(folder) { |vol|
+    Dir.entries(folder).sort.each { |vol|
       next if ['.', '..', '.DS_Store'].include? vol
       handle_vol(vol)
     }

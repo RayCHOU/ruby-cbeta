@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'cbeta'
-  s.version     = '2.3.0'
+  s.version     = '2.3.1'
   s.license     = 'MIT'
   s.date        = '2017-02-08'
   s.summary     = "CBETA Tools"
