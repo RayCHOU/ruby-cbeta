@@ -23,7 +23,7 @@ class CBETA::Gaiji
   # @return [nil] 如果該 CB 碼在 CBETA 缺字庫中不存在
   #
   # @example
-  #   g = Cbeta::Gaiji.new
+  #   g = CBETA::Gaiji.new
   #   g["CB01002"]
   #
   # Return:

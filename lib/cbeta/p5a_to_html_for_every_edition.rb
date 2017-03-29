@@ -362,8 +362,11 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   def e_lb(e)
-    # 卍續藏有 X 跟 R 兩種 lb, 只處理 X
-    return '' if e['ed'] != @series
+    # 卍續藏有 X 跟 R 兩種 lb
+    if @series=='X' and e['ed'].start_with? 'R'
+      @lb_r = e['ed'] + '.' + e['n']
+      return ''
+    end
 
     @char_count = 1
     @lb = e['n']
@@ -692,7 +695,14 @@ class CBETA::P5aToHTMLForEveryEdition
 
     # 正文區的文字外面要包 span
     if @pass.last and mode=='html'
-      r = "<span class='t' l='#{@lb}' w='#{@char_count}'>#{r}</span>"
+      doc = Nokogiri::XML::Document.new
+      node = doc.create_element('span')
+      node['class'] = 't'
+      node['l'] = @lb
+      node['lr'] = @lb_r if @series=='X'
+      node['w'] = @char_count
+      node.inner_html = r
+      r = to_html(node)
       @char_count += text_size
     end
     r
