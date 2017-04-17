@@ -701,7 +701,13 @@ class CBETA::P5aToHTML
     # <milestone unit="juan"> 前面的 lb 屬於新的這一卷
     s.gsub!(%r{((?:<pb [^>]+>\n?)?(?:<lb [^>]+>\n?)+)(<milestone [^>]*unit="juan"[^/>]*/>)}, '\2\1')
 
-    doc = Nokogiri::XML(s)
+    begin
+      doc = Nokogiri::XML(s) { |config| config.strict }
+    rescue Nokogiri::XML::SyntaxError => e
+      puts "XML parse error, file: #{fn}"
+      puts e
+      abort
+    end
     doc.remove_namespaces!()
     doc
   end
