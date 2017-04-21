@@ -709,7 +709,6 @@ class CBETA::P5aToHTMLForEveryEdition
   end
   
   def html_back(juan_no, ed)
-    progress "html back, juan: #{juan_no}, ed: #{ed}"
     r = ''
     case ed
     when '【CBETA】'
@@ -860,11 +859,6 @@ class CBETA::P5aToHTMLForEveryEdition
     text
   end
   
-  def progress(msg)
-    puts Time.now.strftime("%Y-%m-%d %H:%M:%S")
-    puts msg
-  end
-
   def traverse(e, mode='html')
     r = ''
     e.children.each { |c| 
@@ -886,7 +880,6 @@ class CBETA::P5aToHTMLForEveryEdition
     FileUtils.makedirs folder
     
     @editions.each do |ed|
-      progress "filter html ed: #{ed}"
       ed_html = filter_html(html, ed)
       back = html_back(juan_no, ed)
             
@@ -934,7 +927,6 @@ class CBETA::P5aToHTMLForEveryEdition
 #{copyright}
 </body></html>
 eos
-    puts "write: #{output_path}"
     File.write(output_path, text)
   end
 
