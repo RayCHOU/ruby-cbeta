@@ -22,7 +22,6 @@ class CBETA::P5aToText
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param output_root [String] 輸出 Text 路徑
-  # @param format [String] 輸出格式，例：'app'
   # @option opts [String] :format 輸出格式，例：'app'，預設是 normal
   # @option opts [String] :encoding 輸出編碼，預設 'UTF-8'
   # @option opts [String] :gaiji 缺字處理方式，預設 'default'
