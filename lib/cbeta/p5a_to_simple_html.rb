@@ -56,7 +56,7 @@ class CBETA::P5aToSimpleHTML
     return convert_all if target.nil?
 
     arg = target.upcase
-    if arg.size == 1
+    if arg.size <= 2
       handle_collection(arg)
     else
       if arg.include? '..'
@@ -318,12 +318,14 @@ class CBETA::P5aToSimpleHTML
   def handle_vol(vol)
     puts "convert volumn: #{vol}"
 
-    @orig = @cbeta.get_canon_symbol(vol[0])
-    abort "未處理底本" if @orig.nil?
-    @orig_short = @orig.sub(/^【(.*)】$/, '\1')
 
     @vol = vol
     @series = CBETA.get_canon_from_vol(vol)
+    
+    @orig = @cbeta.get_canon_symbol(@series)
+    abort "未處理底本" if @orig.nil?
+    @orig_short = @orig.sub(/^【(.*)】$/, '\1')
+    
     @out_vol = File.join(@output_root, @series, vol)
     FileUtils.remove_dir(@out_vol, true)
     FileUtils.makedirs @out_vol
