@@ -75,7 +75,8 @@ class CBETA::P5aToSimpleHTML
 
   def convert_all
     Dir.entries(@xml_root).sort.each { |c|
-      next unless c.match(/^[A-Z]$/)
+      next if c.start_with? '.'
+      next if c.size > 2
       handle_collection(c)
     }
   end
