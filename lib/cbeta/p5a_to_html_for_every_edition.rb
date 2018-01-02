@@ -13,7 +13,7 @@ require_relative 'cbeta_share'
 #
 # CBETA XML P5a 可由此取得: https://github.com/cbeta-git/xml-p5a
 #
-# 轉檔規則請參考: http://wiki.ddbc.edu.tw/pages/CBETA_XML_P5a_轉_HTML
+# 轉檔規則請參考: http://wiki.dila.edu.tw/pages/CBETA_XML_P5a_轉_HTML
 class CBETA::P5aToHTMLForEveryEdition
   # 內容不輸出的元素
   PASS=['back', 'teiHeader']
