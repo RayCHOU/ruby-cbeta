@@ -120,7 +120,7 @@ class CBETA::Gaiji
   end
   
   def update_from_p5_folder(folder)
-    Dir.entries(folder).each do |f|
+    Dir.entries(folder).sort.each do |f|
       path = File.join(folder, f)
       next if f.start_with? '.'
       if Dir.exist? path

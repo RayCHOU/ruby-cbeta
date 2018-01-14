@@ -422,7 +422,6 @@ class CBETA::P5aToText
   end
 
   def handle_sutra(xml_fn)
-    puts "convert sutra #{xml_fn}"
     @dila_note = 0
     @div_count = 0
     #@editions = Set.new [@orig, "【CBETA】"] # 至少有底本跟CBETA兩種版本
@@ -481,7 +480,7 @@ class CBETA::P5aToText
   end
 
   def handle_vol(vol)
-    puts "convert volumn: #{vol}"
+    print vol + ' '
 
     @canon = CBETA.get_canon_from_vol(vol)
     @orig = @cbeta.get_canon_symbol(@canon)
