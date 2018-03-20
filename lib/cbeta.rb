@@ -9,7 +9,7 @@ class CBETA
   CANON = 'DA|GA|GB|ZS|ZW|[A-Z]'
   SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB)
   DATA = File.join(File.dirname(__FILE__), 'data')
-  PUNCS = '.()[] 。，、；？！：「」『』《》＜＞〈〉〔〕［］【】〖〗…—　'
+  PUNCS = ',.()[] 。．，、；？！：（）「」『』《》＜＞〈〉〔〕［］【】〖〗…—　'
 
   # 由 行首資訊 取得 藏經 ID
   # @param linehead[String] 行首資訊, 例如 "T01n0001_p0001a01" 或 "GA009n0008_p0003a01"
@@ -141,7 +141,7 @@ class CBETA
     [i].pack("U")
   end
   
-	# 載入藏經資料
+  # 載入藏經資料
   def initialize()
     fn = File.join(File.dirname(__FILE__), 'data/canons.csv')
     text = File.read(fn)
@@ -153,7 +153,7 @@ class CBETA
         @canon_nickname[id] = row['nickname']
       end
       next if row['abbreviation'].nil?
-    	next if row['abbreviation'].empty?
+      next if row['abbreviation'].empty?
       @canon_abbr[id] = row['abbreviation']
     end
     
@@ -177,10 +177,10 @@ class CBETA
   # @example
   #   cbeta = CBETA.new
   #   cbeta.get_canon_symbol('T') # return "【大】"
-	def get_canon_symbol(id)
-		return nil unless @canon_abbr.key? id
-		@canon_abbr[id]
-	end
+  def get_canon_symbol(id)
+    return nil unless @canon_abbr.key? id
+    @canon_abbr[id]
+  end
   
   # 取得藏經略名
   #
