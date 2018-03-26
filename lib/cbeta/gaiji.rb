@@ -8,10 +8,16 @@ class CBETA::Gaiji
     @gaijis = JSON.parse(File.read(fn))
     
     @zzs = {}
+    @uni2cb = {}
     @gaijis.each do |k,v|
       if v.key? 'zzs'
         zzs = v['zzs']
         @zzs[zzs] = k
+      end
+      
+      if v.key? 'unicode-char'
+        c = v['unicode-char']
+        @uni2cb[c] = k
       end
     end
   end
@@ -40,6 +46,10 @@ class CBETA::Gaiji
   # 檢查某個缺字碼是否存在
   def key?(cb)
     @gaijis.key? cb
+  end
+  
+  def unicode_to_cb(unicode_char)
+    @uni2cb[unicode_char]
   end
 
   # 傳入缺字 CB 碼，傳回注音 array
