@@ -7,7 +7,7 @@ require 'csv'
 
 class CBETA
   CANON = 'DA|GA|GB|ZS|ZW|[A-Z]'
-  SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB)
+  SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB Y)
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = ',.()[] 。．，、；？！：（）「」『』《》＜＞〈〉〔〕［］【】〖〗…—　'
 
@@ -80,7 +80,10 @@ class CBETA
   def self.get_sort_order_from_canon_id(canon)
     # CBETA 提供，惠敏法師最後決定的全文檢索順序表, 2016-06-03
     i = SORT_ORDER.index(canon)
-    abort "unknown canon id: #{canon}" if i.nil?
+    if i.nil?
+      puts "unknown canon id: #{canon}" 
+      return nil
+    end
     
     (i + 'A'.ord).chr
   end
