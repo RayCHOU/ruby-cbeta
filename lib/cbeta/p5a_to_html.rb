@@ -295,6 +295,8 @@ class CBETA::P5aToHTML
   end
 
   def e_lb(e)
+    return '' if e['type']=='old'
+    
     # 卍續藏有 X 跟 R 兩種 lb, 只處理 X
     return '' if e['ed'] != @series
 

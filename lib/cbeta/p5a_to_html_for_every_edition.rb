@@ -362,6 +362,8 @@ class CBETA::P5aToHTMLForEveryEdition
   end
 
   def e_lb(e)
+    return '' if e['type']=='old'
+    
     # 卍續藏有 X 跟 R 兩種 lb
     if @series=='X' and e['ed'].start_with? 'R'
       @lb_r = e['ed'] + '.' + e['n']

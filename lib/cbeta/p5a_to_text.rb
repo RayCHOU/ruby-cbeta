@@ -262,6 +262,7 @@ class CBETA::P5aToText
   end
 
   def e_lb(e)
+    return '' if e['type']=='old'
     r = ''
     if @settings[:format] == 'app'
       r += "\n#{e['n']}║"

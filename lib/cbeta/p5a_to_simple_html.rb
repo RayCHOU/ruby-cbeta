@@ -148,6 +148,7 @@ class CBETA::P5aToSimpleHTML
   end
 
   def handle_lb(e)
+    return '' if e['type']=='old'
     @lb = e['n']
     r = %(<a id="lb#{@lb}"></a>)
     unless @next_line_buf.empty?
