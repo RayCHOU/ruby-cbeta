@@ -184,6 +184,11 @@ class CBETA::P5aToText
     r += @settings[:format] == 'app' ? "\t" : "\n"
     r
   end
+  
+  def e_foreign(e)
+    return '' if e.key?('place') and e['place'].include?('foot')
+    traverse(e)
+  end
 
   def e_g(e)
     # if 悉曇字、蘭札體
@@ -392,7 +397,7 @@ class CBETA::P5aToText
     when 'div'       then e_div(e)
     when 'docNumber' then e_docNumber(e)
     when 'figure'    then e_figure(e)
-    when 'foreign'   then ''
+    when 'foreign'   then e_foreign(e)
     when 'g'         then e_g(e)
     when 'graphic'   then e_graphic(e)
     when 'head'      then e_head(e)

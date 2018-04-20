@@ -161,6 +161,11 @@ class CBETA::P5aToHTML
   def e_figure(e)
     "<p class='figure'>%s</p>" % traverse(e)
   end
+  
+  def e_foreign(e)
+    return '' if e.key?('place') and e['place'].include?('foot')
+    traverse(e)
+  end
 
   def e_g(e, mode)
     # if 有 <mapping type="unicode">
@@ -509,7 +514,7 @@ class CBETA::P5aToHTML
     when 'corr'      then e_corr(e)
     when 'div'       then e_div(e)
     when 'figure'    then e_figure(e)
-    when 'foreign'   then ''
+    when 'foreign'   then e_foreign(e)
     when 'g'         then e_g(e, mode)
     when 'graphic'   then e_graphic(e)
     when 'head'      then e_head(e)

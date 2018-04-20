@@ -234,6 +234,11 @@ class CBETA::P5aToHTMLForPDF
   def handle_figure(e)
     "<div class='figure'>%s</div>" % traverse(e)
   end
+  
+  def handle_foreign(e)
+    return '' if e.key?('place') and e['place'].include?('foot')
+    traverse(e)
+  end  
 
   def handle_g(e, mode)
     # 悉曇字、蘭札體 使用圖檔
@@ -453,7 +458,7 @@ class CBETA::P5aToHTMLForPDF
     when 'docNumber' then handle_doc_number(e)
     when 'div'       then handle_div(e)
     when 'figure'    then handle_figure(e)
-    when 'foreign'   then ''
+    when 'foreign'   then handle_foreign(e)
     when 'g'         then handle_g(e, mode)
     when 'graphic'   then handle_graphic(e)
     when 'head'      then handle_head(e)

@@ -214,6 +214,7 @@ end
 
 require 'cbeta/gaiji'
 require 'cbeta/bm_to_text'
+require 'cbeta/canon'
 require 'cbeta/char_count'
 require 'cbeta/char_freq'
 require 'cbeta/html_to_pdf'

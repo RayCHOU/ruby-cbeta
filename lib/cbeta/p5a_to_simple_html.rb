@@ -108,6 +108,11 @@ class CBETA::P5aToSimpleHTML
     end
     r
   end
+  
+  def handle_foreign(e)
+    return '' if e.key?('place') and e['place'].include?('foot')
+    traverse(e)
+  end
 
   def handle_g(e)
     # if 悉曇字、蘭札體
@@ -187,7 +192,7 @@ class CBETA::P5aToSimpleHTML
     when 'anchor'    then handle_anchor(e)
     when 'back'      then ''
     when 'corr'      then handle_corr(e)
-    when 'foreign'   then ''
+    when 'foreign'   then handle_foreign(e)
     when 'g'         then handle_g(e)
     when 'graphic'   then ''
     when 'lb'        then handle_lb(e)
