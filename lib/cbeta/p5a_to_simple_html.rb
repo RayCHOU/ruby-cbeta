@@ -25,11 +25,11 @@ class CBETA::P5aToSimpleHTML
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param output_root [String] 輸出 Text 路徑
-  def initialize(xml_root, output_root, opts={})
+  def initialize(xml_root, output_root, gaiji_base, opts={})
     @xml_root = xml_root
     @output_root = output_root
     @cbeta = CBETA.new
-    @gaijis = CBETA::Gaiji.new
+    @gaijis = CBETA::Gaiji.new(gaiji_base)
     @config = { multi_edition: false }
     @config.merge!(opts)
   end
@@ -129,24 +129,16 @@ class CBETA::P5aToSimpleHTML
     g = @gaijis[gid]
     abort "Line:#{__LINE__} 無缺字資料:#{gid}" if g.nil?
     
-    if gid.start_with?('SD') # 悉曇字
-      case gid
-      when 'SD-E35A'
-        return '（'
-      when 'SD-E35B'
-        return '）'
-      else
-        return CBETA.siddham_pua(gid)
-      end
+    # 悉曇字 or 蘭札體
+    if gid.start_with?('SD') or gid.start_with? 'RJ'
+      return g['symbol'] unless g['symbol'].blank?
+      return g['romanized'] unless g['romanized'].blank?
+      return g['pua']
     end
     
-    if gid.start_with? 'RJ' # 蘭札體
-      return CBETA.ranjana_pua(gid)
-    end
-    
-    return g['unicode-char'] if g.has_key?('unicode')
-    return g['normal_unicode'] if g.has_key?('normal_unicode')
-    return g['normal'] if g.has_key?('normal')
+    return g['uni_char'] unless g['uni_char'].blank?
+    return g['norm_uni_char'] unless g['norm_uni_char'].blank?
+    return g['norm_big5_char'] unless g['norm_big5_char'].blank?
 
     # Unicode PUA
     [0xf0000 + gid[2..-1].to_i].pack 'U'

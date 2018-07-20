@@ -2,21 +2,26 @@ require 'json'
 
 # 存取 CBETA 缺字資料庫
 class CBETA::Gaiji
-	# 載入 CBETA 缺字資料庫
-  def initialize()
-    fn = File.join(File.dirname(__FILE__), '../data/gaiji.json')
+  # 載入 CBETA 缺字資料庫
+  # gaiji_base clone from https://github.com/cbeta-org/cbeta_gaiji
+  def initialize(gaiji_base)
+    fn = File.join(gaiji_base, 'cbeta_gaiji.json')
     @gaijis = JSON.parse(File.read(fn))
+    
+    fn = File.join(gaiji_base, 'cbeta_sanskrit.json')
+    h = JSON.parse(File.read(fn))
+    @gaijis.merge!(h)
     
     @zzs = {}
     @uni2cb = {}
     @gaijis.each do |k,v|
-      if v.key? 'zzs'
-        zzs = v['zzs']
+      if v.key? 'composition'
+        zzs = v['composition']
         @zzs[zzs] = k
       end
       
-      if v.key? 'unicode-char'
-        c = v['unicode-char']
+      if v.key? 'uni_char'
+        c = v['uni_char']
         @uni2cb[c] = k
       end
     end
@@ -34,9 +39,9 @@ class CBETA::Gaiji
   #
   # Return:
   #   {
-  #     "zzs": "[得-彳]",
+  #     "composition": "[得-彳]",
   #     "unicode": "3775",
-  #     "unicode-char": "㝵",
+  #     "uni_char": "㝵",
   #     "zhuyin": [ "ㄉㄜˊ", "ㄞˋ" ]
   #   }
   def [](cb)
@@ -67,13 +72,6 @@ class CBETA::Gaiji
     @gaijis[cb]['zhuyin']
   end
   
-  # 讀 XML P5 檔頭的缺字資料，更新現有缺字資料，輸出 JSON
-  def update_from_p5(p5_folder, output_json_filename)
-    update_from_p5_folder(p5_folder)
-    s = JSON.pretty_generate(@gaijis)
-    File.write(output_json_filename, s)
-  end
-  
   # 傳入 組字式，取得 PUA
   def zzs2pua(zzs)
     return nil unless @zzs.key? zzs
@@ -81,63 +79,4 @@ class CBETA::Gaiji
     CBETA.pua(gid)
   end
   
-  private
-  
-  def char_to_hash(char)
-    r = {}
-    field_mapping = {
-      'big5' => 'big5',
-      'Character in the Siddham font' => 'char_in_siddham_font',
-      'composition' => 'zzs',
-      'normalized form' => 'normal',
-      'rjchar' => 'rjchar',
-      'Romanized form in CBETA transcription' => 'roman_cbeta',
-      'Romanized form in Unicode transcription' => 'roman'
-    }
-    char.xpath('charProp').each do |e|
-      prop = e.at('localName').text
-      v = e.at('value').text
-      if field_mapping.key? prop
-        k = field_mapping[prop]
-        r[k] = v
-      else
-        puts "未處理 charProp/localName: #{prop}, value: #{v}"
-      end
-    end
-    char.xpath('mapping').each do |e|
-      case e['type']
-      when 'normal_unicode'
-        u = e.text[2..-1]
-        r['normal_unicode'] = [u.hex].pack('U')
-      when 'unicode'
-        u = e.text[2..-1]
-        r['unicode'] = u
-        r['unicode-char'] = [u.hex].pack('U')
-      end
-    end
-    r
-  end
-  
-  def update_from_p5_file(fn)
-    puts "read #{fn}"
-    f = File.open(fn)
-    doc = Nokogiri::XML(f)
-    f.close
-    doc.remove_namespaces!()
-    doc.xpath("//charDecl/char").each do |char|
-      @gaijis[char['id']] = char_to_hash(char)
-    end
-  end
-  
-  def update_from_p5_folder(folder)
-    Dir.entries(folder).sort.each do |f|
-      path = File.join(folder, f)
-      next if f.start_with? '.'
-      if Dir.exist? path
-        update_from_p5_folder path
-      else
-        update_from_p5_file path
-      end
-    end
-  end
 end

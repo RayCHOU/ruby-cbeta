@@ -134,7 +134,7 @@ class CBETA
   
   # 傳入 蘭札體 缺字碼，傳回 Unicode PUA 字元
   def self.ranjana_pua(gid)
-    i = 0x10000 + gid[-4..-1].hex
+    i = 0x100000 + gid[-4..-1].hex
     [i].pack("U")
   end
   
