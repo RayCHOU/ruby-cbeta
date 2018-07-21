@@ -131,14 +131,14 @@ class CBETA::P5aToSimpleHTML
     
     # 悉曇字 or 蘭札體
     if gid.start_with?('SD') or gid.start_with? 'RJ'
-      return g['symbol'] unless g['symbol'].blank?
-      return g['romanized'] unless g['romanized'].blank?
+      return g['symbol'] if g.key?('symbol')
+      return g['romanized'] if g.key?('romanized')
       return g['pua']
     end
     
-    return g['uni_char'] unless g['uni_char'].blank?
-    return g['norm_uni_char'] unless g['norm_uni_char'].blank?
-    return g['norm_big5_char'] unless g['norm_big5_char'].blank?
+    return g['uni_char'] unless g['uni_char'].empty?
+    return g['norm_uni_char'] unless g['norm_uni_char'].empty?
+    return g['norm_big5_char'] unless g['norm_big5_char'].empty?
 
     # Unicode PUA
     [0xf0000 + gid[2..-1].to_i].pack 'U'
