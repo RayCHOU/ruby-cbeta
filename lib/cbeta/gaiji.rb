@@ -53,6 +53,41 @@ class CBETA::Gaiji
     @gaijis.key? cb
   end
   
+  # 依優先序呈現缺字
+  def to_s(gid, cb_priority=nil, skt_priority=nil)
+    if cb_priority.nil?
+      cb_priority = %w(uni_char norm_uni_char norm_big5_char composition)
+    end
+    
+    if skt_priority.nil?
+      skt_priority = %w(symbol romanized PUA)
+    end
+    
+    g = @gaijis[gid]
+    if gid.start_with? 'CB'
+      cb_priority.each do |k|
+        if k == 'PUA'
+          return CBETA.pua(gid)
+        elsif g.key? k
+          return g[k] unless g[k].empty?
+        end
+      end
+    else
+      skt_priority.each do |k|
+        if k == 'PUA'
+          s = g['pua'].sub(/^U\+(.*)$/, '\1')
+          i = s.to_i(16)
+          return [i].pack("U")
+        else
+          if g.key? k
+            return g[k] unless g[k].empty?
+          end
+        end
+      end
+    end
+    nil
+  end
+  
   def unicode_to_cb(unicode_char)
     @uni2cb[unicode_char]
   end
