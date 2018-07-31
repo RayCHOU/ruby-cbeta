@@ -144,6 +144,14 @@ class CBETA::P5aToSimpleHTML
     [0xf0000 + gid[2..-1].to_i].pack 'U'
   end
 
+  def handle_item(e)
+    r = traverse(e)
+    if e.key? 'n'
+      r = e['n'] + r
+    end
+    r
+  end
+  
   def handle_lb(e)
     return '' if e['type']=='old'
     @lb = e['n']
@@ -187,6 +195,7 @@ class CBETA::P5aToSimpleHTML
     when 'foreign'   then handle_foreign(e)
     when 'g'         then handle_g(e)
     when 'graphic'   then ''
+    when 'item'      then handle_item(e)
     when 'lb'        then handle_lb(e)
     when 'lem'       then handle_lem(e)
     when 'mulu'      then ''
