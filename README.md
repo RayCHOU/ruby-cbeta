@@ -7,24 +7,24 @@ Ruby gem for use CBETA resources
 * Convert CBETA BM to Text
 * Convert HTML to PDF
 
-# Reqirements
+## Reqirements
 
-## nokogiri
+### nokogiri
 
-	gem install nokogiri
+    gem install nokogiri
 
-## PDF
+### PDF
 
 install prince: http://www.princexml.com/
 
-# Getting Started
+## Getting Started
 
-	gem install cbeta
+    gem install cbeta
 
-# Examples
+## Examples
 
 See folder examples/
 
-# Documentation
+## Documentation
 
 [Documentation for cbeta on Rubydoc](http://www.rubydoc.info/gems/cbeta/)

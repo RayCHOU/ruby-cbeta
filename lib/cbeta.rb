@@ -6,8 +6,8 @@
 require 'csv'
 
 class CBETA
-  CANON = 'DA|GA|GB|ZS|ZW|[A-Z]'
-  SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB Y)
+  CANON = 'DA|GA|GB|LC|ZS|ZW|[A-Z]'
+  SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB Y LC)
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = ',.()[] 。．，、；？！：（）「」『』《》＜＞〈〉〔〕［］【】〖〗…—　'
 
@@ -129,7 +129,13 @@ class CBETA
   
   # 傳入 缺字碼，傳回 Unicode PUA 字元
   def self.pua(gid)
-    [0xf0000 + gid[2..-1].to_i].pack 'U'
+    if gid.start_with? 'SD'
+      siddham_pua(gid)
+    elsif gid.start_with? 'RJ'
+      ranjana_pua(gid)
+    else
+      [0xf0000 + gid[2..-1].to_i].pack 'U'
+    end
   end
   
   # 傳入 蘭札體 缺字碼，傳回 Unicode PUA 字元
