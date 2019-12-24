@@ -152,11 +152,10 @@ class CBETA
   
   # 載入藏經資料
   def initialize()
-    fn = File.join(File.dirname(__FILE__), 'data/canons.csv')
-    text = File.read(fn)
     @canon_abbr = {}
     @canon_nickname = {}
-    CSV.parse(text, :headers => true) do |row|
+    fn = File.join(File.dirname(__FILE__), 'data/canons.csv')
+    CSV.foreach(fn, :headers => true, encoding: 'utf-8') do |row|
       id = row['id']
       unless row['nickname'].nil?
         @canon_nickname[id] = row['nickname']
