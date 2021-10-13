@@ -1,3 +1,5 @@
+require 'fileutils'
+
 class CBETA::HTMLToPDF
   # @param input [String] folder of source HTML, HTML can be produced by CBETA::P5aToHTMLForPDF.
   # @param output [String] output folder
