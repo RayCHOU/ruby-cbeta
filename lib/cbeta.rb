@@ -8,6 +8,7 @@ require 'csv'
 class CBETA
   CANON = 'CC|DA|GA|GB|LC|TX|ZS|ZW|[A-Z]'
   SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB Y LC TX CC)
+  VOL3 = %w[A CC C G GA GB L M P U]
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = ',.()[] 。‧．，、；？！：︰／（）「」『』《》＜＞〈〉〔〕［］【】〖〗〃…—─　～│┬▆＊＋－＝'
   
