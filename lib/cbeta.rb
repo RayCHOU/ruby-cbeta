@@ -109,7 +109,7 @@ class CBETA
       canon = $1
       vol = $2
     
-      if %w[A C G GA GB L M P U].include? canon
+      if VOL3.include? canon
         # 這些藏經的冊號是三碼
         vol_len = 3
       else
