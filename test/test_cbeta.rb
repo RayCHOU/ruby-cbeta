@@ -8,3 +8,13 @@ class CBETATest < Minitest::Test
     assert_equal CBETA.normalize_vol('CC1'), 'CC001'
   end
 end
+
+class GaijiTest < Minitest::Test
+  def setup
+    @gaiji = CBETA::Gaiji.new
+  end
+
+  def test_to_s
+    refute_nil(@gaiji.to_s('CB00597'))
+  end
+end

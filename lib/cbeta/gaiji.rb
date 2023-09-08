@@ -2,13 +2,14 @@ require 'json'
 
 # 存取 CBETA 缺字資料庫
 class CBETA::Gaiji
+  
   # 載入 CBETA 缺字資料庫
-  # gaiji_base clone from https://github.com/cbeta-org/cbeta_gaiji
-  def initialize(gaiji_base)
-    fn = File.join(gaiji_base, 'cbeta_gaiji.json')
+  def initialize
+    folder = File.join(File.dirname(__FILE__), '../data')
+    fn = File.join(folder, 'cbeta_gaiji.json')
     @gaijis = JSON.parse(File.read(fn))
     
-    fn = File.join(gaiji_base, 'cbeta_sanskrit.json')
+    fn = File.join(folder, 'cbeta_sanskrit.json')
     h = JSON.parse(File.read(fn))
     @gaijis.merge!(h)
     
@@ -54,7 +55,11 @@ class CBETA::Gaiji
   end
   
   # 依優先序呈現缺字
-  def to_s(gid, cb_priority=nil, skt_priority=nil)
+  #
+  # @param cb_priority [Array<String>] 優先序
+  # @param skt_priority [Array<String>] 優先序
+  # @return [String] 可能是 nil
+  def to_s(gid, cb_priority: nil, skt_priority: nil)
     if cb_priority.nil?
       cb_priority = %w(uni_char norm_uni_char norm_big5_char composition)
     end
