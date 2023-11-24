@@ -57,9 +57,12 @@ class CBETA
   
   # 由 行首資訊 取得 XML檔相對路徑
   # @param linehead[String] 行首資訊, 例如 "GA009n0008_p0003a01"
+  #   ex: J36nB348_p0284c01
   # @return [String] XML檔相對路徑，例如 "GA/GA009/GA009n0008.xml"
   def self.linehead_to_xml_file_path(linehead)
-    if m = linehead.match(/^(?<work>(?<vol>(?<canon>#{CANON})\d+)n\d+[a-zA-Z]?).*$/)
+    # 經號: 四碼數字 + 英文字母 或如 嘉興藏 英文字母 + 三碼數字
+    w = '(?:\d+[a-zA-Z]?|[AB]\d{3})'
+    if m = linehead.match(/^(?<work>(?<vol>(?<canon>#{CANON})\d+)n#{w}).*$/)
       File.join(m[:canon], m[:vol], m[:work]+'.xml')
     else
       nil
