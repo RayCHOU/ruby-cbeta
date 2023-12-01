@@ -10,7 +10,7 @@ class CBETA
   SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB Y LC TX CC)
   VOL3 = %w[A CC C G GA GB L M P U]
   DATA = File.join(File.dirname(__FILE__), 'data')
-  PUNCS = ',.()[] 。‧．，、；？！：︰／（）「」『』《》＜＞〈〉〔〕［］【】〖〗〃…—─　～│┬▆＊＋－＝'
+  PUNCS = ',.()[] 。‧．，、；？！：︰／（）「」『』《》＜＞〈〉〔〕［］【】〖〗〃…—─　～│┬▆△＊＋－＝'
   
   # 由 行首資訊 取得 藏經 ID
   # @param linehead[String] 行首資訊, 例如 "T01n0001_p0001a01" 或 "GA009n0008_p0003a01"
