@@ -69,6 +69,8 @@ class CBETA::Gaiji
     end
     
     g = @gaijis[gid]
+    return nil if g.nil?
+    
     if gid.start_with? 'CB'
       cb_priority.each do |k|
         if k == 'PUA'
