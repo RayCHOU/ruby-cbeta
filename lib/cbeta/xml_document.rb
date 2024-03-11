@@ -3,6 +3,8 @@ require 'nokogiri'
 class CBETA::XMLDocument
   PASS = %w(back graphic mulu rdg sic teiHeader)
 
+  attr_reader :doc
+
   def initialize(string_or_io)
     @doc = Nokogiri::XML(string_or_io)
     @doc.remove_namespaces!
@@ -44,7 +46,19 @@ class CBETA::XMLDocument
     '　'
   end
 
+  def e_caption(e)
+    traverse(e) + "\n"
+  end
+
   def e_cell(e)
+    traverse(e) + "\n"
+  end
+
+  def e_cit(e)
+    traverse(e)
+  end
+
+  def e_closer(e)
     traverse(e) + "\n"
   end
   
@@ -63,6 +77,10 @@ class CBETA::XMLDocument
   def e_div(e)
     traverse(e)
   end
+
+  def e_docAuthor(e)
+    traverse(e)
+  end
   
   def e_docNumber(e)
     traverse(e) + "\n"
@@ -73,6 +91,12 @@ class CBETA::XMLDocument
   end
 
   def e_figure(e)
+    r = traverse(e)
+    r << "\n" unless r.empty?
+    r
+  end
+
+  def e_figDesc(e)
     traverse(e) + "\n"
   end
 
@@ -88,14 +112,19 @@ class CBETA::XMLDocument
       cb_priority = %w(uni_char composition)
     end
 
-    gid = e['ref'][1..-1]
-    r = @gaiji.to_s(gid, cb_priority:)
-    abort "Line:#{__LINE__} 缺字處理失敗:#{gid}" if r.nil?
-    r
+    gid = e['ref'].delete_prefix('#')
+
+    unless @gaiji.key?(gid)
+      raise "在 CBETA 缺字庫中找不到此缺字碼: #{gid}"
+    end
+
+    @gaiji.to_s(gid, cb_priority:)
   end
 
   def e_head(e)
-    traverse(e) + "\n"
+    r = traverse(e)
+    r << "\n" unless r.empty?
+    r
   end
 
   def e_hi(e)
@@ -178,6 +207,14 @@ class CBETA::XMLDocument
     ''
   end
 
+  def e_quote(e)
+    traverse(e)
+  end
+
+  def e_ref(e)
+    traverse(e)
+  end
+
   def e_reg(e)
     r = ''
     choice = e.at_xpath('ancestor::choice')
@@ -187,6 +224,10 @@ class CBETA::XMLDocument
 
   def e_row(e)
     traverse(e) + "\n"
+  end
+
+  def e_seg(e)
+    traverse(e)
   end
 
   def e_sg(e)
@@ -265,7 +306,6 @@ class CBETA::XMLDocument
     r = '▆' if r.empty?
     r
   end
-
 
   def handle_node(e)
     return '' if e.comment?
