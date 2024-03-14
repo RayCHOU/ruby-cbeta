@@ -1,10 +1,12 @@
 require 'json'
+require 'unihan2'
 
 # 存取 CBETA 缺字資料庫
 class CBETA::Gaiji
   
   # 載入 CBETA 缺字資料庫
   def initialize
+    @us = CBETA::UnicodeService.new
     folder = File.join(File.dirname(__FILE__), '../data')
     fn = File.join(folder, 'cbeta_gaiji.json')
     @gaijis = JSON.parse(File.read(fn))
@@ -73,9 +75,12 @@ class CBETA::Gaiji
     
     if gid.start_with? 'CB'
       cb_priority.each do |k|
-        if k == 'PUA'
+        case k
+        when 'PUA'
           return CBETA.pua(gid)
-        elsif g.key? k
+        when 'uni_char', 'norm_uni_char'
+          return g[k] if @us.level2?(g[k])
+        else
           return g[k] unless g[k].empty?
         end
       end
