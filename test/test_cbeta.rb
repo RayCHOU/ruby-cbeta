@@ -17,5 +17,6 @@ class GaijiTest < Minitest::Test
 
   def test_to_s
     refute_nil(@gaiji.to_s('CB00597'))
+    refute_nil(@gaiji.to_s('CB00011')) # unicode, 通用字 都沒有
   end
 end

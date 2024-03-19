@@ -81,7 +81,7 @@ class CBETA::Gaiji
         when 'uni_char', 'norm_uni_char'
           return g[k] if @us.level2?(g[k])
         else
-          return g[k] unless g[k].empty?
+          return g[k] if g.key?(k) and not g[k].empty?
         end
       end
     else
