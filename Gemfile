@@ -1,3 +1,3 @@
 source 'https://rubygems.org'
-gem 'nokogiri'
+gem 'nokogiri', '>= 1.16.5'
 gem 'unihan2', '>= 1.0.1'
