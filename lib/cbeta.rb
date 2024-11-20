@@ -54,6 +54,22 @@ class CBETA
   def self.get_xml_file_from_vol_and_work(vol, work)
     vol + 'n' + work.sub(/^(#{CANON})(.*)$/, '\2')
   end
+
+  # 如果 卷跨冊，回傳 冊號範圍
+  def self.juan_across_vol(work, juan)
+    case work
+    when 'GA0037'
+      ('GA036'..'GA037') if juan == 2
+    when 'L1557'
+      case juan
+      when 17 then ('L130'..'L131')
+      when 34 then ('L131'..'L132')
+      when 51 then ('L132'..'L133')
+      end
+    when 'X0714'
+      ('X39'..'X40') if juan == 3
+    end
+  end
   
   # 由 行首資訊 取得 XML檔相對路徑
   # @param linehead[String] 行首資訊, 例如 "GA009n0008_p0003a01"
@@ -218,6 +234,7 @@ class CBETA
   def get_category(book_id)
     @categories[book_id]
   end
+
     
 end
 

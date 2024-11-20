@@ -7,6 +7,8 @@ class CBETATest < Minitest::Test
     assert_equal 'J/J36/J36nB348.xml', CBETA.linehead_to_xml_file_path('J36nB348_p0284c01')
     assert_equal '【太虛】', CBETA.new.get_canon_symbol('TX')
     assert_equal 'CC001', CBETA.normalize_vol('CC1')
+    assert_equal 'GA036', CBETA.juan_across_vol('GA0037', 2).first
+    assert_nil CBETA.juan_across_vol('T0001', 1)
   end
 end
 
