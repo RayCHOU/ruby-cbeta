@@ -56,18 +56,56 @@ class CBETA
   end
 
   # 如果 卷跨冊，回傳 冊號範圍
-  def self.juan_across_vol(work, juan)
+  def self.work_juan_vol_range(work, juan)
     case work
     when 'GA0037'
-      ('GA036'..'GA037') if juan == 2
+      (36..37) if juan == 2
     when 'L1557'
       case juan
-      when 17 then ('L130'..'L131')
-      when 34 then ('L131'..'L132')
-      when 51 then ('L132'..'L133')
+      when 17 then (130..131)
+      when 34 then (131..132)
+      when 51 then (132..133)
       end
     when 'X0714'
-      ('X39'..'X40') if juan == 3
+      (39..40) if juan == 3
+    end
+  end
+
+  # 卷跨冊
+  # @return [Numeric] 1: 卷跨冊的上半部； 2: 卷跨冊的下半部
+  def self.juan_across_vol(vol, work, juan=nil)
+    case work
+    when 'GA0037'
+      case vol
+      when 'GA036'
+        1 if juan == 2
+      when 'GA037'
+        2 if juan.nil? or juan == 2
+      end
+    when 'L1557'
+      case vol
+      when 'L130'
+        1 if juan == 17 # 上半卷
+      when 'L131'
+        case juan
+        when 17, nil then 2
+        when 34      then 1
+        end
+      when 'L132'
+        case juan
+        when 34, nil then 2
+        when 51      then 1
+        end
+      when 'L133'
+        2 if juan.nil? or juan == 51
+      end
+    when 'X0714'
+      case vol
+      when 'X39'
+        1 if juan == 3
+      when 'X40'
+        2 if juan.nil? or juan == 3
+      end
     end
   end
   
