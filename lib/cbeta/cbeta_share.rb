@@ -1,4 +1,10 @@
 module CbetaShare
+  def each_canon(xml_root)
+    Dir.entries(xml_root).sort.each do |c|
+      next unless c.match(/^#{CBETA::CANON}$/)
+      yield(c)
+    end
+  end
 
   def to_html(e)
     e.to_xml(
