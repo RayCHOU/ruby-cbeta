@@ -49,6 +49,16 @@ class CBETA::P5aChecker
     end
   end
 
+  def e_app(e)
+    if e['type'] == 'star'
+      n = e['corresp'].delete_prefix('#')
+      unless @notes.include?(n)
+        error "lb: #{@lb}, corresp: #{n}", type: "[E03] 星號校勘 app 沒有對應的 note"
+      end
+    end
+    traverse(e)
+  end
+
   def e_g(e)
     gid = e['ref'][1..-1]
     unless @gaijis.key? gid
@@ -86,6 +96,7 @@ class CBETA::P5aChecker
     unless e.key?('wit')
       error "lem 缺少 wit 屬性"
     end
+    traverse(e)
   end
 
   def e_rdg(e)
@@ -107,7 +118,7 @@ class CBETA::P5aChecker
     Dir.entries(folder).sort.each do |f|
       next if f.start_with? '.'
       @vol = f
-      $stderr.puts @vol + ' '
+      $stderr.print "#{@vol} "
       path = File.join(folder, @vol)
       handle_vol(path)
     end
@@ -125,6 +136,7 @@ class CBETA::P5aChecker
     if doc.errors.empty?
       doc.remove_namespaces!
       @lbs = Set.new
+      read_notes(doc)
       traverse(doc.root)
     else
       @errors << "錯誤: #{@basename} not well-formed\n"
@@ -133,6 +145,7 @@ class CBETA::P5aChecker
 
   def handle_node(e)
     case e.name
+    when 'app'     then e_app(e)
     when 'g'       then e_g(e)
     when 'graphic' then e_graphic(e)
     when 'lb'      then e_lb(e)
@@ -147,6 +160,15 @@ class CBETA::P5aChecker
       next if f.start_with? '.'
       path = File.join(folder, f)
       handle_file(path)
+    end
+  end
+  
+  def read_notes(doc)
+    @notes = Set.new
+    doc.xpath('//note').each do |e|
+      if e.key?('n')
+        @notes << e['n']
+      end
     end
   end
 
