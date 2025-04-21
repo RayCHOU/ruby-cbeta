@@ -1,6 +1,12 @@
 require_relative 'cbeta_share'
 
 # 檢查 CBETA XML P5a
+# 錯誤類型
+#   [E01] 行號重複
+#   [E02] 文字直接出現在 div 下
+#   [E03] 星號校勘 app 沒有對應的 note
+# 警告類型
+#   [W01] 夾注包夾注
 class CBETA::P5aChecker
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param figures [String] 插圖 路徑 (可由 https://github.com/cbeta-git/CBR2X-figures 取得)
@@ -108,6 +114,16 @@ class CBETA::P5aChecker
     traverse(e)
   end
 
+  def e_note(e)
+    return unless e['place'] == 'inline'
+    if @element_stack.include?('inline_note')
+      @errors << "[W01] 夾注包夾注: #{@basename}, lb: #{@lb}\n"
+    end
+    @element_stack << 'inline_note'
+    traverse(e)
+    @element_stack.pop
+  end
+
   def e_rdg(e)
     return if e['type'] == 'cbetaRemark'
     unless e.key?('wit')
@@ -147,6 +163,7 @@ class CBETA::P5aChecker
       doc.remove_namespaces!
       @lbs = Set.new
       read_notes(doc)
+      @element_stack = []
       traverse(doc.root)
     else
       @errors << "錯誤: #{@basename} not well-formed\n"
@@ -160,6 +177,7 @@ class CBETA::P5aChecker
     when 'graphic' then e_graphic(e)
     when 'lb'      then e_lb(e)
     when 'lem'     then e_lem(e)
+    when 'note'    then e_note(e)
     when 'rdg'     then e_rdg(e)
     else traverse(e)
     end
