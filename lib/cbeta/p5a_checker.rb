@@ -10,11 +10,11 @@ class CBETA::P5aChecker
     @xml_root = xml_root
     @figures = figures
     @log = log
+    @errors = ''
+    @g_errors = {}
   end
   
   def check
-    @errors = ''
-    @g_errors = {}
     puts "xml: #{@xml_root}"
     each_canon(@xml_root) do |c|
       @canon = c
@@ -22,6 +22,26 @@ class CBETA::P5aChecker
       handle_canon(path)
     end
 
+    display_errors
+  end
+  
+  def check_file(fn)
+    handle_file(fn)
+    display_errors
+  end
+
+  private
+
+  include CbetaShare
+
+  def chk_text(node)
+    return if node.text.strip.empty?
+    if node.parent.name == 'div'
+      error "lb: #{@lb}, text: #{node.text.inspect}", type: "[E02] 文字直接出現在 div 下"
+    end
+  end
+
+  def display_errors
     @g_errors.keys.sort.each do |k|
       s = @g_errors[k].to_a.join(',')
       @errors << "#{k} 無缺字資料，出現於：#{s}\n"
@@ -35,17 +55,6 @@ class CBETA::P5aChecker
     else
       File.write(@log, @errors)
       puts "\n發現錯誤，請查看 #{@log}"
-    end
-  end
-  
-  private
-
-  include CbetaShare
-
-  def chk_text(node)
-    return if node.text.strip.empty?
-    if node.parent.name == 'div'
-      error "lb: #{@lb}, text: #{node.text.inspect}", type: "[E02] 文字直接出現在 div 下"
     end
   end
 
@@ -126,7 +135,8 @@ class CBETA::P5aChecker
   
   def handle_file(fn)
     @basename = File.basename(fn)
-    
+    @canon ||= CBETA.get_canon_id_from_linehead(@basename)
+
     s = File.read(fn)
     if s.include? "\u200B"
       @errors << "#{@basename} 含有 U+200B Zero Width Space 字元\n"
