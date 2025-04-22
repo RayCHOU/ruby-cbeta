@@ -1,13 +1,15 @@
 require_relative 'cbeta_share'
 
 # 檢查 CBETA XML P5a
-# 錯誤類型
-#   [E01] 行號重複
-#   [E02] 文字直接出現在 div 下
-#   [E03] 星號校勘 app 沒有對應的 note
-# 警告類型
-#   [W01] 夾注包夾注
+#
+# * 錯誤類型
+#   * [E01] 行號重複
+#   * [E02] 文字直接出現在 div 下
+#   * [E03] 星號校勘 app 沒有對應的 note
+# * 警告類型
+#   * [W01] 夾注包夾注
 class CBETA::P5aChecker
+
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param figures [String] 插圖 路徑 (可由 https://github.com/cbeta-git/CBR2X-figures 取得)
   # @param log [String] Log file path
@@ -20,6 +22,13 @@ class CBETA::P5aChecker
     @g_errors = {}
   end
   
+  # 檢查全部 CBETA XML P5a
+  # @example 
+  #   CBETA::P5aChecker.new(
+  #     xml_root: '~/git-repos/cbeta-xml-p5a', 
+  #     figures: '~/git-repos/CBR2X-figures', 
+  #     log: '~/log/check-cbeta-xml.log'
+  #   ).check
   def check
     puts "xml: #{@xml_root}"
     each_canon(@xml_root) do |c|
@@ -31,6 +40,31 @@ class CBETA::P5aChecker
     display_errors
   end
   
+  # 檢查某部藏經
+  # @param canon [String] 藏經 ID, example: "T"
+  def check_canon(canon)
+    @canon = canon
+    path = File.join(@xml_root, @canon)
+    handle_canon(path)
+    display_errors
+  end
+
+  # 檢查某一冊
+  # @param vol [String] 冊號, example: "T01"
+  def check_vol(vol)
+    @vol = vol
+    @canon = CBETA.get_canon_from_vol(vol)
+    path = File.join(@xml_root, @canon, vol)
+    handle_vol(path)
+    display_errors
+  end
+
+  # 檢查單一檔案
+  # @example 
+  #   CBETA::P5aChecker.new(
+  #     figures: '~/git-repos/CBR2X-figures',
+  #     log: '~/log/check-cbeta-xml.log'
+  #   ).check_file('~/git-repos/cbeta-xml-p5a/A/A110/A110n1490.xml')
   def check_file(fn)
     handle_file(fn)
     display_errors
@@ -56,11 +90,11 @@ class CBETA::P5aChecker
     if @errors.empty?
       puts "檢查完成，未發現錯誤。"
     elsif @log.nil?
-      puts "\n發現錯誤："
+      puts "發現錯誤："
       puts @errors
     else
       File.write(@log, @errors)
-      puts "\n發現錯誤，請查看 #{@log}"
+      puts "發現錯誤，請查看 #{@log}"
     end
   end
 
@@ -143,7 +177,6 @@ class CBETA::P5aChecker
     Dir.entries(folder).sort.each do |f|
       next if f.start_with? '.'
       @vol = f
-      $stderr.print "#{@vol} "
       path = File.join(folder, @vol)
       handle_vol(path)
     end
@@ -184,6 +217,7 @@ class CBETA::P5aChecker
   end
   
   def handle_vol(folder)
+    puts "check vol: #{File.basename(folder)}"
     Dir.entries(folder).sort.each do |f|
       next if f.start_with? '.'
       path = File.join(folder, f)
