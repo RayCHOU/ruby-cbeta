@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'cbeta'
-  s.version     = '3.6.4'
+  s.version     = '3.6.5'
   s.license     = 'MIT'
   s.date        = '2025-04-22'
   s.summary     = "CBETA Tools"
@@ -11,6 +11,6 @@ Gem::Specification.new do |s|
   s.homepage    = 'https://github.com/RayCHOU/ruby-cbeta'
   s.required_ruby_version = '>= 3.0.0'
   s.add_runtime_dependency 'unihan2', '~> 1.2', '>= 1.2.0'
-  s.add_runtime_dependency 'nokogiri', '~> 1.18', '>= 1.18.5'
+  s.add_runtime_dependency 'nokogiri', '~> 1.18.8', '>= 1.18.8'
   s.add_runtime_dependency 'csv', '~> 3.3', '>= 3.3.2'
 end
