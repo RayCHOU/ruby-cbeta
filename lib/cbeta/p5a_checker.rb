@@ -8,6 +8,7 @@ require_relative 'cbeta_share'
 #   * [E03] 星號校勘 app 沒有對應的 note
 # * 警告類型
 #   * [W01] 夾注包夾注
+#   * [W02] 出現罕用字元
 class CBETA::P5aChecker
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
@@ -78,6 +79,17 @@ class CBETA::P5aChecker
     return if node.text.strip.empty?
     if node.parent.name == 'div'
       error "lb: #{@lb}, text: #{node.text.inspect}", type: "[E02] 文字直接出現在 div 下"
+    end
+    if node.text =~ /(\$|\{|\})/
+      char = $1
+
+      # 允許的已知用例：
+      #   ZW07n0065_p0409a03：{本}續，大分為三。……初對辨題名者，梵云……，此云『吉
+      if char == '{' and @basename == 'ZW07n0065.xml' and @lb == '0409a03'
+        return
+      end
+
+      @errors << "[W02] 出現罕用字元: #{@basename}, lb: #{@lb}, char: #{char}\n"
     end
   end
 
