@@ -6,6 +6,13 @@ require_relative 'cbeta_share'
 #   * [E01] 行號重複
 #   * [E02] 文字直接出現在 div 下
 #   * [E03] 星號校勘 app 沒有對應的 note
+#   * [E04] rdg 缺少 wit 屬性"
+#   * [E05] 圖檔 不存在
+#   * [E06] lb format error
+#   * [E07] lem 缺少 wit 屬性
+#   * [E08] item 下有多個 list
+#   * [E09] table cols 屬性值錯誤
+#
 # * 警告類型
 #   * [W01] 夾注包夾注
 #   * [W02] 出現罕用字元
@@ -78,7 +85,7 @@ class CBETA::P5aChecker
   def chk_text(node)
     return if node.text.strip.empty?
     if node.parent.name == 'div'
-      error "lb: #{@lb}, text: #{node.text.inspect}", type: "[E02] 文字直接出現在 div 下"
+      error "[E02] 文字直接出現在 div 下, text: #{node.text.inspect}"
     end
     if node.text =~ /(\$|\{|\})/
       char = $1
@@ -89,7 +96,7 @@ class CBETA::P5aChecker
         return
       end
 
-      @errors << "[W02] 出現罕用字元: #{@basename}, lb: #{@lb}, char: #{char}\n"
+      error "[W02] 出現罕用字元: char: #{char}"
     end
   end
 
@@ -114,7 +121,7 @@ class CBETA::P5aChecker
     if e['type'] == 'star'
       n = e['corresp'].delete_prefix('#')
       unless @notes.include?(n)
-        error "lb: #{@lb}, corresp: #{n}", type: "[E03] 星號校勘 app 沒有對應的 note"
+        error "[E03] 星號校勘 app 沒有對應的 note, corresp: #{n}"
       end
     end
     traverse(e)
@@ -132,22 +139,30 @@ class CBETA::P5aChecker
     url = File.basename(e['url'])
     fn = File.join(@figures, @canon, url)
     unless File.exist? fn
-      error "圖檔 #{url} 不存在"
+      error "[E05] 圖檔 不存在, url: #{url}"
     end
+  end
+
+  def e_item(e)
+    lists = e.xpath('list')
+    if lists.size > 1
+      error "[E08] item 下有多個 list"
+    end
+    traverse(e)
   end
   
   def e_lb(e)
     return if e['type']=='old'
     unless e['n'].match(/^[a-z\d]\d{3}[a-z]\d+$/)
-      error "lb format error: #{e['n']}"
+      error "[E06] lb format error: #{e['n']}"
     end
+
+    return if e['ed'] == 'R'
 
     @lb = e['n']
     ed_lb = "#{e['ed']}#{@lb}"
     if @lbs.include? ed_lb
-      unless e['ed'].start_with?('R')
-        error "lb: #{@lb}, ed: #{e['ed']}", type: "[E01] 行號重複"
-      end
+      error "[E01] 行號重複, ed: #{e['ed']}"
     else
       @lbs << ed_lb
     end
@@ -155,7 +170,7 @@ class CBETA::P5aChecker
   
   def e_lem(e)
     unless e.key?('wit')
-      error "lem 缺少 wit 屬性"
+      error "[E07] lem 缺少 wit 屬性"
     end
     traverse(e)
   end
@@ -163,7 +178,7 @@ class CBETA::P5aChecker
   def e_note(e)
     return unless e['place'] == 'inline'
     if @element_stack.include?('inline_note')
-      @errors << "[W01] 夾注包夾注: #{@basename}, lb: #{@lb}\n"
+      error "[W01] 夾注包夾注"
     end
     @element_stack << 'inline_note'
     traverse(e)
@@ -173,16 +188,35 @@ class CBETA::P5aChecker
   def e_rdg(e)
     return if e['type'] == 'cbetaRemark'
     unless e.key?('wit')
-      error "rdg 缺少 wit 屬性, lb: #{@lb}"
+      error "[E04] rdg 缺少 wit 屬性"
     end
   end
 
-  def error(msg, type: nil)
-    s = ''
-    s << "#{type}: " unless type.nil?
-    s << "#{@basename}, #{msg}"
-    puts s
-    @errors << s + "\n"
+  def e_table(e)
+    max_cols = 0
+    e.xpath('row').each do |row|
+      cols = 0
+      row.xpath('cell').each do |cell|
+        if cell.key?('cols')
+          cols += cell['cols'].to_i
+        else
+          cols += 1
+        end
+      end
+      max_cols = cols if cols > max_cols
+    end
+
+    if e['cols'].to_i != max_cols
+      error "[E09] table cols 屬性值錯誤, table/@cols: #{e['cols']}, 根據 cell 計算的 cols: #{max_cols}"
+    end
+
+    traverse(e)
+  end
+
+  def error(msg)
+    s = "#{msg}, #{@basename}, lb: #{@lb}\n"
+    print s
+    @errors << s
   end
   
   def handle_canon(folder)
@@ -220,10 +254,12 @@ class CBETA::P5aChecker
     when 'app'     then e_app(e)
     when 'g'       then e_g(e)
     when 'graphic' then e_graphic(e)
+    when 'item'    then e_item(e)
     when 'lb'      then e_lb(e)
     when 'lem'     then e_lem(e)
     when 'note'    then e_note(e)
     when 'rdg'     then e_rdg(e)
+    when 'table'   then e_table(e)
     else traverse(e)
     end
   end
