@@ -157,7 +157,7 @@ class CBETA::P5aChecker
       error "[E06] lb format error: #{e['n']}"
     end
 
-    return if e['ed'] == 'R'
+    return if e['ed'] =~ /^R\d/
 
     @lb = e['n']
     ed_lb = "#{e['ed']}#{@lb}"
