@@ -12,6 +12,7 @@ require_relative 'cbeta_share'
 #   * [E07] lem 缺少 wit 屬性
 #   * [E08] item 下有多個 list
 #   * [E09] table cols 屬性值錯誤
+#   * [E10] p 不應直接出現在 list 下
 #
 # * 警告類型
 #   * [W01] 夾注包夾注
@@ -185,6 +186,13 @@ class CBETA::P5aChecker
     @element_stack.pop
   end
 
+  def e_p(e)
+    if e.parent.name == 'list'
+      error "[E10] p 不應直接出現在 list 下"
+    end
+    traverse(e)
+  end
+
   def e_rdg(e)
     return if e['type'] == 'cbetaRemark'
     unless e.key?('wit')
@@ -258,6 +266,7 @@ class CBETA::P5aChecker
     when 'lb'      then e_lb(e)
     when 'lem'     then e_lem(e)
     when 'note'    then e_note(e)
+    when 'p'       then e_p(e)
     when 'rdg'     then e_rdg(e)
     when 'table'   then e_table(e)
     else traverse(e)
