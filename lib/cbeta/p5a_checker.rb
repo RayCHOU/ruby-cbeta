@@ -17,7 +17,9 @@ require_relative 'cbeta_share'
 # * 警告類型
 #   * [W01] 夾注包夾注
 #   * [W02] 出現罕用字元
+#   * [W03] 不應出現 TAB 字元
 class CBETA::P5aChecker
+  ALLOW_TAB = %w[change]
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param figures [String] 插圖 路徑 (可由 https://github.com/cbeta-git/CBR2X-figures 取得)
@@ -85,9 +87,11 @@ class CBETA::P5aChecker
 
   def chk_text(node)
     return if node.text.strip.empty?
+    
     if node.parent.name == 'div'
       error "[E02] 文字直接出現在 div 下, text: #{node.text.inspect}"
     end
+
     if node.text =~ /(\$|\{|\})/
       char = $1
 
@@ -98,6 +102,12 @@ class CBETA::P5aChecker
       end
 
       error "[W02] 出現罕用字元: char: #{char}"
+    end
+
+    if node.text.include?("\t")
+      unless ALLOW_TAB.include?(node.parent.name)
+        error "[W03] <#{node.parent.name}> 下不應出現 TAB 字元"
+      end
     end
   end
 
@@ -177,7 +187,11 @@ class CBETA::P5aChecker
   end
 
   def e_note(e)
-    return unless e['place'] == 'inline'
+    unless e['place'] == 'inline'
+      traverse(e)
+      return 
+    end
+
     if @element_stack.include?('inline_note')
       error "[W01] 夾注包夾注"
     end
