@@ -13,6 +13,7 @@ require_relative 'cbeta_share'
 #   * [E08] item 下有多個 list
 #   * [E09] table cols 屬性值錯誤
 #   * [E10] p 不應直接出現在 list 下
+#   * [E11] note 直接出現在 div 下
 #
 # * 警告類型
 #   * [W01] 夾注包夾注
@@ -187,6 +188,11 @@ class CBETA::P5aChecker
   end
 
   def e_note(e)
+    if e.parent.name == 'div'
+      error "[E11] note 直接出現在 div 下"
+    end
+    
+    #   * [E11] note 直接出現在 div 下
     unless e['place'] == 'inline'
       traverse(e)
       return 
