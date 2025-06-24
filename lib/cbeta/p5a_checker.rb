@@ -14,6 +14,8 @@ require_relative 'cbeta_share'
 #   * [E09] table cols 屬性值錯誤
 #   * [E10] p 不應直接出現在 list 下
 #   * [E11] note 直接出現在 div 下
+#   * [E12] note 直接出現在 lg 下
+#   * [E13] tt 直接出現在 lg 下
 #
 # * 警告類型
 #   * [W01] 夾注包夾注
@@ -192,7 +194,10 @@ class CBETA::P5aChecker
       error "[E11] note 直接出現在 div 下"
     end
     
-    #   * [E11] note 直接出現在 div 下
+    if e.parent.name == 'lg'
+      error "[E12] note 直接出現在 lg 下"
+    end
+
     unless e['place'] == 'inline'
       traverse(e)
       return 
@@ -238,6 +243,13 @@ class CBETA::P5aChecker
       error "[E09] table cols 屬性值錯誤, table/@cols: #{e['cols']}, 根據 cell 計算的 cols: #{max_cols}"
     end
 
+    traverse(e)
+  end
+
+  def e_tt(e)
+    if e.parent.name == 'lg'
+      error "[E13] tt 直接出現在 lg 下"
+    end
     traverse(e)
   end
 
@@ -289,6 +301,7 @@ class CBETA::P5aChecker
     when 'p'       then e_p(e)
     when 'rdg'     then e_rdg(e)
     when 'table'   then e_table(e)
+    when 'tt'      then e_tt(e)
     else traverse(e)
     end
   end
