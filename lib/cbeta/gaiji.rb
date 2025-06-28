@@ -60,12 +60,19 @@ class CBETA::Gaiji
   #
   # @param cb_priority [Array<String>] 優先序
   # @param skt_priority [Array<String>] 優先序
+  #   預設優先序的順序是：
+  #     * uni_2: 有 Unicode Level 2 字元 (Unicode 10.0 以內) 就採用
+  #     * norm_uni_2: 有 Unicode 通用字 Level 2 (Unicode 10.0 以內) 就採用
+  #     * norm_big5_char: 有 Big5 通用字 就採用
+  #     * uni_char: 有 Unicode 字元 就採用
+  #     * norm_uni_char: 有 Unicode 通用字 就採用
+  #     * composition: 有組字式 就採用
   # @return [String] 可能是 nil
   def to_s(gid, cb_priority: nil, skt_priority: nil)
     if cb_priority.nil?
-      cb_priority = %w(uni_char norm_uni_char norm_big5_char composition)
+      cb_priority = %w(uni_2 norm_uni_2 norm_big5_char uni_char norm_uni_char composition)
     end
-    
+
     if skt_priority.nil?
       skt_priority = %w(symbol romanized PUA)
     end
@@ -78,7 +85,11 @@ class CBETA::Gaiji
         case k
         when 'PUA'
           return CBETA.pua(gid)
-        when 'uni_char', 'norm_uni_char'
+        when 'uni_2'
+          k = 'uni_char'
+          return g[k] if @us.level2?(g[k])
+        when 'norm_uni_2'
+          k = 'norm_uni_char'
           return g[k] if @us.level2?(g[k])
         else
           return g[k] if g.key?(k) and not g[k].empty?
