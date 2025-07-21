@@ -16,6 +16,7 @@ require_relative 'cbeta_share'
 #   * [E11] note 直接出現在 div 下
 #   * [E12] note 直接出現在 lg 下
 #   * [E13] tt 直接出現在 lg 下
+#   * [E14] <anchor type="right"> 不應直接出現在 div 或 body 下
 #
 # * 警告類型
 #   * [W01] 夾注包夾注
@@ -128,6 +129,12 @@ class CBETA::P5aChecker
     else
       File.write(@log, @errors)
       puts "發現錯誤，請查看 #{@log}"
+    end
+  end
+
+  def e_anchor(e)
+    if e['type'] == "circle" and %w[body div].include?(e.parent.name)
+      error %([E14] <anchor type="right"> 不應直接出現在 div 或 body 下)
     end
   end
 
@@ -291,6 +298,7 @@ class CBETA::P5aChecker
 
   def handle_node(e)
     case e.name
+    when 'anchor'  then e_anchor(e)
     when 'app'     then e_app(e)
     when 'g'       then e_g(e)
     when 'graphic' then e_graphic(e)
