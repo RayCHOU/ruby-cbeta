@@ -1,17 +1,18 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    nokogiri (1.18.8-arm64-darwin)
+    nokogiri (1.18.9-arm64-darwin)
       racc (~> 1.4)
     racc (1.8.1)
     unihan2 (1.2.0)
 
 PLATFORMS
   arm64-darwin-23
+  arm64-darwin-24
 
 DEPENDENCIES
-  nokogiri (~> 1.18.8, >= 1.18.8)
+  nokogiri (~> 1.18, >= 1.18.9)
   unihan2 (>= 1.2.0)
 
 BUNDLED WITH
-   2.5.8
+   2.6.9
