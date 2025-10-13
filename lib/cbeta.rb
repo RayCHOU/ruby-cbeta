@@ -12,6 +12,16 @@ class CBETA
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = ',.()[] 。‧．，、；？！：︰／（）「」『』《》＜＞〈〉〔〕［］【】〖〗〃…—─　～│┬▆△＊＋－＝'
   
+  # 經號 (不含 Canon ID):
+  #   四碼數字 T0001
+  #   四碼數字 + 英文字母 T0150A, T0128a
+  #   英文字母 + 三碼數字 JA041, ZWa073
+  WORK_PART = '\d{4}[a-zA-Z]?|[ABa]\d{3}'
+
+  # XML file 主檔名
+  # GA010n0009
+  BASENAME = "(?:#{CANON})\\d{2,3}n(?:#{WORK_PART})"
+  
   # 由 行首資訊 取得 藏經 ID
   # @param linehead[String] 行首資訊, 例如 "T01n0001_p0001a01" 或 "GA009n0008_p0003a01"
   # @return [String] 藏經 ID，例如 "T" 或 "GA"
@@ -45,6 +55,22 @@ class CBETA
     r += '_' if r.match(/\d$/)
     r += 'p' + lb
     r
+  end
+
+  # 由 XML檔主檔名 取得 典籍編號
+  # @param fn[String] 檔名, 例如 "T01n0001" 或 "GA009n0008"
+  # @return [String] 典籍編號，例如 "T0001" 或 "GA0008"
+  def self.get_work_id_from_file_basename(fn)
+    r = fn.sub(/^(#{CANON})\d{2,3}n(.*)$/, '\1\2')
+    r = 'T0220' if r.start_with? 'T0220'
+    r
+  end
+
+  # 由 行首資訊 取得 典籍編號
+  # @param linehead[String] CBETA 行首資訊，例如 "T01n0001_p0001a01" 或 "T25n1510ap0757b29"
+  # @return [String] 典籍編號，例如 "T0001" 或 "T1510a"
+  def self.get_work_id_from_linehead(linehead)
+    linehead.sub(/^(#{CANON})\d{2,3}n(#{WORK_PART}).*$/, '\1\2')
   end
   
   # 由 冊號 及 典籍編號 取得 XML 主檔名
@@ -114,24 +140,13 @@ class CBETA
   #   ex: J36nB348_p0284c01
   # @return [String] XML檔相對路徑，例如 "GA/GA009/GA009n0008.xml"
   def self.linehead_to_xml_file_path(linehead)
-    # 經號: 四碼數字 + 英文字母 或如 嘉興藏 英文字母 + 三碼數字
-    w = '(?:\d+[a-zA-Z]?|[AB]\d{3})'
-    if m = linehead.match(/^(?<work>(?<vol>(?<canon>#{CANON})\d+)n#{w}).*$/)
+    if m = linehead.match(/^(?<work>(?<vol>(?<canon>#{CANON})\d+)n(?:#{WORK_PART})).*$/)
       File.join(m[:canon], m[:vol], m[:work]+'.xml')
     else
       nil
     end
-  end
-  
-  # 由 XML檔主檔名 取得 典籍編號
-  # @param fn[String] 檔名, 例如 "T01n0001" 或 "GA009n0008"
-  # @return [String] 典籍編號，例如 "T0001" 或 "GA0008"
-  def self.get_work_id_from_file_basename(fn)
-    r = fn.sub(/^(#{CANON})\d{2,3}n(.*)$/, '\1\2')
-    r = 'T0220' if r.start_with? 'T0220'
-    r
-  end
-  
+  end  
+
   # 由「藏經 ID」取得「排序用編號」，例如：傳入 "T" 回傳 "A"；傳入 "X" 回傳 "B"
   # @param canon [String] 藏經 ID
   # @return [String] 排序用編號

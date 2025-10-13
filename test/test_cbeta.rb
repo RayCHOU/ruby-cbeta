@@ -3,9 +3,10 @@ require_relative '../lib/cbeta'
 
 class CBETATest < Minitest::Test
   def test_cbeta
+    assert_equal '【太虛】', CBETA.new.get_canon_symbol('TX')
+    assert_equal 'GA0008', CBETA.get_work_id_from_linehead('GA009n0008_p0003a01')
     assert_equal 'GA/GA009/GA009n0008.xml', CBETA.linehead_to_xml_file_path('GA009n0008_p0003a01')
     assert_equal 'J/J36/J36nB348.xml', CBETA.linehead_to_xml_file_path('J36nB348_p0284c01')
-    assert_equal '【太虛】', CBETA.new.get_canon_symbol('TX')
     assert_equal 'CC001', CBETA.normalize_vol('CC1')
     
     assert_equal 1, CBETA.juan_across_vol('GA036', 'GA0037', 2)
