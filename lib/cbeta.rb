@@ -47,6 +47,8 @@ class CBETA
   # @param lb[String] 例如 "0001a01" 或 "0757b29"
   # @return [String] CBETA 行首資訊，例如 "T01n0001_p0001a01" 或 "T25n1510ap0757b29"
   def self.get_linehead(file_basename, lb)
+    return nil if file_basename.nil?
+    
     if file_basename.match(/^(T\d\dn0220)/)
       r = $1
     else

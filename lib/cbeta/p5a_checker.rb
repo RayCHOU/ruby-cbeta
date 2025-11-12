@@ -17,6 +17,7 @@ require_relative 'cbeta_share'
 #   * [E12] note 直接出現在 lg 下
 #   * [E13] tt 直接出現在 lg 下
 #   * [E14] <anchor type="right"> 不應直接出現在 div 或 body 下
+#   * [E15] <note> corresp 無對應的 <note>
 #
 # * 警告類型
 #   * [W01] 夾注包夾注
@@ -33,7 +34,7 @@ class CBETA::P5aChecker
     @xml_root = xml_root
     @figures = figures
     @log = log
-    @errors = ''
+    @errors = []
     @g_errors = {}
   end
   
@@ -118,17 +119,17 @@ class CBETA::P5aChecker
   def display_errors
     @g_errors.keys.sort.each do |k|
       s = @g_errors[k].to_a.join(',')
-      @errors << "#{k} 無缺字資料，出現於：#{s}\n"
+      @errors << "#{k} 無缺字資料，出現於：#{s}"
     end
     
     if @errors.empty?
       puts "檢查完成，未發現錯誤。"
     elsif @log.nil?
-      puts "發現錯誤："
-      puts @errors
+      puts "發現 #{@errors.size} 錯誤："
+      puts @errors.join("\n")
     else
-      File.write(@log, @errors)
-      puts "發現錯誤，請查看 #{@log}"
+      File.write(@log, @errors.join("\n"))
+      puts "發現 #{@errors.size} 錯誤，請查看 #{@log}"
     end
   end
 
@@ -197,13 +198,9 @@ class CBETA::P5aChecker
   end
 
   def e_note(e)
-    if e.parent.name == 'div'
-      error "[E11] note 直接出現在 div 下"
-    end
-    
-    if e.parent.name == 'lg'
-      error "[E12] note 直接出現在 lg 下"
-    end
+    error "[E11] note 直接出現在 div 下" if e.parent.name == 'div'    
+    error "[E12] note 直接出現在 lg 下" if e.parent.name == 'lg'
+    e_note_corresp(e) if e.key?('corresp')
 
     unless e['place'] == 'inline'
       traverse(e)
@@ -213,9 +210,16 @@ class CBETA::P5aChecker
     if @element_stack.include?('inline_note')
       error "[W01] 夾注包夾注"
     end
+
     @element_stack << 'inline_note'
     traverse(e)
     @element_stack.pop
+  end
+
+  def e_note_corresp(e)
+    n = e['corresp'].delete_prefix('#')
+    return if @notes.include?(n)
+    error "[E15] note corresp #{n} 無對應 note"
   end
 
   def e_p(e)
@@ -261,8 +265,8 @@ class CBETA::P5aChecker
   end
 
   def error(msg)
-    s = "#{msg}, #{@basename}, lb: #{@lb}\n"
-    print s
+    s = "#{msg}, #{@basename}, lb: #{@lb}"
+    puts "\n#{s}"
     @errors << s
   end
   
@@ -281,7 +285,7 @@ class CBETA::P5aChecker
 
     s = File.read(fn)
     if s.include? "\u200B"
-      @errors << "#{@basename} 含有 U+200B Zero Width Space 字元\n"
+      @errors << "#{@basename} 含有 U+200B Zero Width Space 字元"
     end
     
     doc = Nokogiri::XML(s)
@@ -292,7 +296,7 @@ class CBETA::P5aChecker
       @element_stack = []
       traverse(doc.root)
     else
-      @errors << "錯誤: #{@basename} not well-formed\n"
+      @errors << "錯誤: #{@basename} not well-formed"
     end
   end
 
@@ -315,7 +319,7 @@ class CBETA::P5aChecker
   end
   
   def handle_vol(folder)
-    puts "check vol: #{File.basename(folder)}"
+    print "\rcheck vol: #{File.basename(folder)}  "
     Dir.entries(folder).sort.each do |f|
       next if f.start_with? '.'
       path = File.join(folder, f)
