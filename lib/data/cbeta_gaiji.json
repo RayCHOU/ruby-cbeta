@@ -18350,8 +18350,9 @@
     "pua": "U+F0AAE"
   },
   "CB02735": {
+    "norm_unicode": "210E4",
+    "norm_uni_char": "𡃤",
     "composition": "[口*束*頁]",
-    "norm_big5_char": "𡃤",
     "moe_variant_id": "c18412-002",
     "pua": "U+F0AAF"
   },
@@ -93043,6 +93044,8 @@
     "pua": "U+F3C0A"
   },
   "CB15371": {
+    "unicode": "1F78B",
+    "uni_char": "🞋",
     "composition": "[○@⊙]",
     "pua": "U+F3C0B"
   },
@@ -182422,5 +182425,65 @@
     "norm_big5_char": "多",
     "moe_variant_id": "A00842-007",
     "pua": "U+F88B6"
+  },
+  "CB34999": {
+    "unicode": "9815",
+    "uni_char": "頕",
+    "composition": "[占*頁]",
+    "moe_variant_id": "C16105",
+    "pua": "U+F88B7"
+  },
+  "CB35000": {
+    "unicode": "2ED75",
+    "uni_char": "𮵵",
+    "composition": "[竺-二+(大/田)]",
+    "pua": "U+F88B8"
+  },
+  "CB35001": {
+    "composition": "[口*(宓/用)]",
+    "pua": "U+F88B9"
+  },
+  "CB35002": {
+    "unicode": "21248",
+    "uni_char": "𡉈",
+    "composition": "[在-(仁-二)+((打-丁)-一)]",
+    "norm_big5_char": "在",
+    "moe_variant_id": "A00743-005",
+    "pua": "U+F88BA"
+  },
+  "CB35003": {
+    "unicode": "29643",
+    "uni_char": "𩙃",
+    "composition": "[彳*韋*風]",
+    "moe_variant_id": "C16330-003",
+    "pua": "U+F88BB"
+  },
+  "CB35004": {
+    "unicode": "237FC",
+    "uni_char": "𣟼",
+    "composition": "[枲*焦]",
+    "moe_variant_id": "C05589",
+    "pua": "U+F88BC"
+  },
+  "CB35005": {
+    "unicode": "9FFE",
+    "uni_char": "鿾",
+    "composition": "[土*郎]",
+    "pua": "U+F88BD"
+  },
+  "CB35006": {
+    "composition": "[拶-夕+歹]",
+    "norm_big5_char": "拶",
+    "moe_variant_id": "B01283-005",
+    "pua": "U+F88BE"
+  },
+  "CB35007": {
+    "composition": "[木*(厂@敞)]",
+    "pua": "U+F88BF"
+  },
+  "CB35008": {
+    "composition": "[鬥@((留-田+亞)*斤)]",
+    "norm_big5_char": "鬥",
+    "pua": "U+F88C0"
   }
 }
