@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'cbeta_share'
 
 # 檢查 CBETA XML P5a
@@ -18,6 +20,7 @@ require_relative 'cbeta_share'
 #   * [E13] tt 直接出現在 lg 下
 #   * [E14] <anchor type="right"> 不應直接出現在 div 或 body 下
 #   * [E15] <note> corresp 無對應的 <note>
+#   * [E16] app/@n 與 note/@n 不一致
 #
 # * 警告類型
 #   * [W01] 夾注包夾注
@@ -129,7 +132,7 @@ class CBETA::P5aChecker
       puts @errors.join("\n")
     else
       File.write(@log, @errors.join("\n"))
-      puts "發現 #{@errors.size} 錯誤，請查看 #{@log}"
+      puts "\n-----\n發現 #{@errors.size} 錯誤，請查看 #{@log}"
     end
   end
 
@@ -146,7 +149,35 @@ class CBETA::P5aChecker
         error "[E03] 星號校勘 app 沒有對應的 note, corresp: #{n}"
       end
     end
+    e_app_n(e)
     traverse(e)
+  end
+
+  # 以下情況，n 必須一致
+  #   * 連續 <note type="orig"> + <note type="mod"> + <app>
+  #   * 連續 <note type="orig"> + <app>
+  def e_app_n(e)
+    return if e["type"] == "star"
+
+    p1 = e.previous_element
+    return if p1.nil? or p1.name != "note"
+
+    t1 = p1['type']
+    return if t1 != "orig" and t1 != "mod"
+
+    n1 = p1["n"]
+    if not e["n"].start_with?(n1)
+      error "[E16] app/@n 與 note/@n 不一致, app/@n: #{e['n']}, note/@n: #{n1}"
+      return
+    end
+
+    p2 = p1.previous_element
+    return if p2.nil? or p2.name != "note" or p2["type"] != "orig"
+
+    n2 = p2['n']
+    if not n1.start_with?(n2)
+      error "[E16] app/@n 與 note/@n 不一致, app/@n: #{e['n']}, note/@n: #{n2}"
+    end
   end
 
   def e_g(e)
@@ -198,7 +229,7 @@ class CBETA::P5aChecker
   end
 
   def e_note(e)
-    error "[E11] note 直接出現在 div 下" if e.parent.name == 'div'    
+    error "[E11] note 直接出現在 div 下" if e.parent.name == 'div'
     error "[E12] note 直接出現在 lg 下" if e.parent.name == 'lg'
     e_note_corresp(e) if e.key?('corresp')
 
