@@ -159,11 +159,11 @@ class CBETA::P5aChecker
   def e_app_n(e)
     return if e["type"] == "star"
 
-    p1 = e.previous_element
+    p1 = e.previous
     return if p1.nil? or p1.name != "note"
 
     t1 = p1['type']
-    return if t1 != "orig" and t1 != "mod"
+    return if not %w[add orig mod].include?(t1)
 
     n1 = p1["n"]
     if not e["n"].start_with?(n1)
@@ -171,7 +171,9 @@ class CBETA::P5aChecker
       return
     end
 
-    p2 = p1.previous_element
+    return if t1 == "add"
+
+    p2 = p1.previous
     return if p2.nil? or p2.name != "note" or p2["type"] != "orig"
 
     n2 = p2['n']
