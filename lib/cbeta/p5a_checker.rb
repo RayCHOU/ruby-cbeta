@@ -192,9 +192,9 @@ class CBETA::P5aChecker
   
   def e_graphic(e)
     url = File.basename(e['url'])
-    fn = File.join(@figures, @canon, url)
-    unless File.exist? fn
-      error "[E05] 圖檔 不存在, url: #{url}"
+    path = File.join(@figures, @canon, url)
+    unless File.exist? path
+      error "[E05] 圖檔 不存在, url: #{e['url']}, path: #{path}"
     end
   end
 
