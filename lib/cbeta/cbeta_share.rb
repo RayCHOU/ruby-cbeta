@@ -1,7 +1,7 @@
 module CbetaShare
   def each_canon(xml_root)
     Dir.entries(xml_root).sort.each do |c|
-      next unless c.match(/^#{CBETA::CANON}$/)
+      next unless c.match(CBETA::CANON_ID)
       yield(c)
     end
   end

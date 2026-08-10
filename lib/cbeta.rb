@@ -6,22 +6,36 @@
 require 'csv'
 
 class CBETA
-  CANON = 'CC|DA|GA|GB|LC|TX|YP|ZS|ZW|[A-Z]'
+  # 藏經 ID, 例如 T, ZS
+  #
+  # 本身是 alternation, 已經包在 non-capturing group 裡,
+  # 所以插值到 regexp 時不需要 (也不應該) 再包一層 group:
+  #   正確: /\A#{CBETA::CANON}\z/
+  #   多餘: /\A(?:#{CBETA::CANON})\z/
+  # 若需要取出藏經 ID, 才用 capturing group 包起來: /^(#{CBETA::CANON})/
+  CANON = '(?:CC|DA|GA|GB|LC|TX|YP|ZS|ZW|[A-Z])'
   SORT_ORDER = %w(T X A K S F C D U P J L G M N ZS I ZW B GA GB Y LC TX YP CC)
   VOL3 = %w[A CC C G GA GB L M P U]
   DATA = File.join(File.dirname(__FILE__), 'data')
   PUNCS = ',.()[] 。‧．，、；？！：︰／（）「」『』《》＜＞〈〉〔〕［］【】〖〗〃…—─　～│┬▆△＊＋－＝'
-  
+
   # 經號 (不含 Canon ID):
   #   四碼數字 T0001
   #   四碼數字 + 英文字母 T0150A, T0128a
   #   英文字母 + 三碼數字 JA041, ZWa073
-  WORK_PART = '\d{4}[a-zA-Z]?|[ABa]\d{3}'
+  # 與 CANON 一樣已自帶 non-capturing group。
+  WORK_PART = '(?:\d{4}[a-zA-Z]?|[ABa]\d{3})'
 
   # XML file 主檔名
   # GA010n0009
-  BASENAME = "(?:#{CANON})\\d{2,3}n(?:#{WORK_PART})"
-  
+  BASENAME = "#{CANON}\\d{2,3}n#{WORK_PART}"
+
+  # 整個字串就是 藏經 ID, 例如 "T", "ZS"
+  CANON_ID = /\A#{CANON}\z/
+
+  # 整個字串就是 典籍編號, 例如 "T0001", "JB271", "ZWa073"
+  WORK_ID = /\A#{CANON}#{WORK_PART}\z/
+
   # 由 行首資訊 取得 藏經 ID
   # @param linehead[String] 行首資訊, 例如 "T01n0001_p0001a01" 或 "GA009n0008_p0003a01"
   # @return [String] 藏經 ID，例如 "T" 或 "GA"
@@ -142,7 +156,7 @@ class CBETA
   #   ex: J36nB348_p0284c01
   # @return [String] XML檔相對路徑，例如 "GA/GA009/GA009n0008.xml"
   def self.linehead_to_xml_file_path(linehead)
-    if m = linehead.match(/^(?<work>(?<vol>(?<canon>#{CANON})\d+)n(?:#{WORK_PART})).*$/)
+    if m = linehead.match(/^(?<work>(?<vol>(?<canon>#{CANON})\d+)n#{WORK_PART}).*$/)
       File.join(m[:canon], m[:vol], m[:work]+'.xml')
     else
       nil
@@ -172,7 +186,7 @@ class CBETA
   #   CBETA.linehead_to_s('T85n2838_p1291a03')
   #   # return "T85, no. 2838, p. 1291, a03"
   def self.linehead_to_s(linehead)
-    linehead.match(/^((?:#{CANON})\d+)n(.*)_p(\d+)([a-z]\d+)$/) {
+    linehead.match(/^(#{CANON}\d+)n(.*)_p(\d+)([a-z]\d+)$/) {
       return "#{$1}, no. #{$2}, p. #{$3}, #{$4}"
     }
     nil
