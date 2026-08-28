@@ -2,20 +2,16 @@
 
 Ruby gem for use CBETA resources
 
-* Convert CBETA XML P5a to HTML
 * Convert CBETA XML P5a to Text
 * Convert CBETA BM to Text
-* Convert HTML to PDF
+* Check CBETA XML P5a
+* Access CBETA gaiji (missing character) database
 
 ## Reqirements
 
 ### nokogiri
 
     gem install nokogiri
-
-### PDF
-
-install prince: http://www.princexml.com/
 
 ## Getting Started
 
