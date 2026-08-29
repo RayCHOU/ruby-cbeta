@@ -21,6 +21,7 @@ require_relative 'cbeta_share'
 #   * [E14] <anchor type="right"> 不應直接出現在 div 或 body 下
 #   * [E15] <note> corresp 無對應的 <note>
 #   * [E16] app/@n 與 note/@n 不一致
+#   * [E17] list 下沒有任何有內容的 item
 #
 # * 警告類型
 #   * [W01] 夾注包夾注
@@ -28,6 +29,9 @@ require_relative 'cbeta_share'
 #   * [W03] 不應出現 TAB 字元
 class CBETA::P5aChecker
   ALLOW_TAB = %w[change]
+
+  # 判斷 item 是否有內容時，不計入的元素（本身不產生內容，只是標記位置）
+  EMPTY_ELEMENTS = %w[lb pb milestone anchor mulu space]
 
   # @param xml_root [String] 來源 CBETA XML P5a 路徑
   # @param figures [String] 插圖 路徑 (可由 https://github.com/cbeta-git/CBR2X-figures 取得)
@@ -117,6 +121,12 @@ class CBETA::P5aChecker
         error "[W03] <#{node.parent.name}> 下不應出現 TAB 字元"
       end
     end
+  end
+
+  # 節點是否有內容（文字，或 EMPTY_ELEMENTS 以外的元素）
+  def content?(e)
+    return true unless e.text.strip.empty?
+    e.xpath('.//*').any? { |d| not EMPTY_ELEMENTS.include?(d.name) }
   end
 
   def display_errors
@@ -226,6 +236,20 @@ class CBETA::P5aChecker
   def e_lem(e)
     unless e.key?('wit')
       error "[E07] lem 缺少 wit 屬性"
+    end
+    traverse(e)
+  end
+
+  # list 下應該至少有一個 item 是有內容的
+  def e_list(e)
+    # item 可能包在 app/lem 之類的元素裡，所以用 descendant 找，
+    # 但要排除 巢狀 list 底下的 item
+    items = e.xpath('.//item').select { |item| nearest_list(item).equal?(e) }
+    unless items.any? { |item| content?(item) }
+      msg = "[E17] list 下沒有任何有內容的 item"
+      head = e.at_xpath('head')
+      msg += ", head: #{head.text.gsub(/\s+/, ' ').strip[0, 30]}" unless head.nil?
+      error msg
     end
     traverse(e)
   end
@@ -342,6 +366,7 @@ class CBETA::P5aChecker
     when 'item'    then e_item(e)
     when 'lb'      then e_lb(e)
     when 'lem'     then e_lem(e)
+    when 'list'    then e_list(e)
     when 'note'    then e_note(e)
     when 'p'       then e_p(e)
     when 'rdg'     then e_rdg(e)
@@ -360,6 +385,13 @@ class CBETA::P5aChecker
     end
   end
   
+  # 往上找最近的 list 祖先
+  def nearest_list(e)
+    r = e.parent
+    r = r.parent while r.element? and r.name != 'list'
+    r
+  end
+
   def read_notes(doc)
     @notes = Set.new
     doc.xpath('//note').each do |e|
