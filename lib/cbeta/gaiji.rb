@@ -1,19 +1,34 @@
 require 'json'
-require 'unihan2'
 
 # 存取 CBETA 缺字資料庫
 class CBETA::Gaiji
-  
+  # 內建缺字資料所在的資料夾
+  DATA_FOLDER = File.expand_path('../data', __dir__)
+
   # 載入 CBETA 缺字資料庫
-  def initialize
+  #
+  # 預設使用 gem 內建的缺字資料。也可以傳入外部檔案路徑，自行決定要使用哪一份資料，
+  # 例如 https://github.com/cbeta-org/cbeta_gaiji 某個版本的 cbeta_gaiji.json，
+  # 讓缺字資料版本與 gem 版本脫鉤。外部檔案必須與 cbeta_gaiji repo 的 JSON 格式相同。
+  #
+  # @param gaiji_path [String, nil] CB 缺字資料（cbeta_gaiji.json）路徑，nil 表示使用內建資料
+  # @param sanskrit_path [String, nil] 悉曇、蘭札資料（cbeta_sanskrit.json）路徑，nil 表示使用內建資料
+  #
+  # @example 使用內建資料
+  #   g = CBETA::Gaiji.new
+  #
+  # @example 使用外部資料
+  #   g = CBETA::Gaiji.new(
+  #     gaiji_path: '/path/to/cbeta_gaiji/cbeta_gaiji.json',
+  #     sanskrit_path: '/path/to/cbeta_gaiji/cbeta_sanskrit.json'
+  #   )
+  def initialize(gaiji_path: nil, sanskrit_path: nil)
     @us = CBETA::UnicodeService.new
-    folder = File.join(File.dirname(__FILE__), '../data')
-    fn = File.join(folder, 'cbeta_gaiji.json')
-    @gaijis = JSON.parse(File.read(fn))
-    
-    fn = File.join(folder, 'cbeta_sanskrit.json')
-    h = JSON.parse(File.read(fn))
-    @gaijis.merge!(h)
+    gaiji_path    ||= File.join(DATA_FOLDER, 'cbeta_gaiji.json')
+    sanskrit_path ||= File.join(DATA_FOLDER, 'cbeta_sanskrit.json')
+
+    @gaijis = JSON.parse(File.read(gaiji_path))
+    @gaijis.merge!(JSON.parse(File.read(sanskrit_path)))
     
     @zzs = {}
     @uni2cb = {}

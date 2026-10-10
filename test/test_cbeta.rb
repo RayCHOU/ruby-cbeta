@@ -1,4 +1,6 @@
 require 'minitest/autorun'
+require 'tmpdir'
+require 'json'
 require_relative '../lib/cbeta'
 
 class CBETATest < Minitest::Test
@@ -83,5 +85,37 @@ class GaijiTest < Minitest::Test
   def test_to_s
     refute_nil(@gaiji.to_s('CB00597'))
     refute_nil(@gaiji.to_s('CB00011')) # unicode, 通用字 都沒有
+  end
+end
+
+class GaijiExternalDataTest < Minitest::Test
+  def test_external_path
+    Dir.mktmpdir do |dir|
+      gaiji_path = File.join(dir, 'gaiji.json')
+      File.write(gaiji_path, JSON.generate('CB99999' => { 'composition' => '[測-試]' }))
+      g = CBETA::Gaiji.new(gaiji_path: gaiji_path)
+      assert_equal '[測-試]', g.to_s('CB99999')
+      refute g.key?('CB00001') # 外部資料取代內建 CB 缺字
+      assert g.key?('SD-A5A9') # 悉曇仍使用內建資料
+    end
+  end
+end
+
+class UnicodeServiceTest < Minitest::Test
+  def setup
+    @us = CBETA::UnicodeService.new
+  end
+
+  def test_level1
+    assert @us.level1?('一')         # U+4E00, Unicode 1.1
+    refute @us.level1?("\u{20000}")  # Ext B, Unicode 3.1
+    refute @us.level1?(nil)
+  end
+
+  def test_level2
+    assert @us.level2?("\u{20000}")  # Ext B, Unicode 3.1
+    assert @us.level2?("\u{2CEA1}")  # Ext F, Unicode 10.0
+    refute @us.level2?("\u{30000}")  # Ext G, Unicode 13.0
+    refute @us.level2?(nil)
   end
 end

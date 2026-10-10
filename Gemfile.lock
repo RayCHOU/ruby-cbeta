@@ -1,12 +1,18 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    csv (3.3.6)
+    drb (2.2.3)
+    minitest (6.0.6)
+      drb (~> 2.0)
+      prism (~> 1.5)
     nokogiri (1.19.4-arm64-darwin)
       racc (~> 1.4)
     nokogiri (1.19.4-x86_64-linux-gnu)
       racc (~> 1.4)
+    prism (1.9.0)
     racc (1.8.1)
-    unihan2 (1.2.0)
+    rake (13.4.2)
 
 PLATFORMS
   arm64-darwin-23
@@ -14,8 +20,10 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  csv (~> 3.3, >= 3.3.2)
+  minitest
   nokogiri (~> 1.19)
-  unihan2 (>= 1.2.0)
+  rake
 
 BUNDLED WITH
    2.6.9

@@ -56,7 +56,9 @@ CBETA 的識別字階層：藏經 ID（`T`、`GA`）→ 冊號 vol（`T01`、`GA
 - `canons.csv`：藏經 metadata（id、chinese_name、nickname、abbreviation…），`CBETA#initialize` 與 `CBETA::Canon` 都會讀。
 - `categories.json`：經號 → 部類。
 
-缺字呈現的優先序在 `Gaiji#to_s`，預設 `uni_2 → norm_uni_2 → norm_big5_char → uni_char → norm_uni_char → composition`；`uni_2`/`norm_uni_2` 的判斷透過 `CBETA::UnicodeService`（包裝 `unihan2` gem 查 Unicode 版本：level1 = Unicode 3.0 以內，level2 = 10.0 以內）。
+缺字呈現的優先序在 `Gaiji#to_s`，預設 `uni_2 → norm_uni_2 → norm_big5_char → uni_char → norm_uni_char → composition`；`uni_2`/`norm_uni_2` 的判斷透過 `CBETA::UnicodeService`（用 Ruby regexp 的 `\p{Age=...}` 判斷 Unicode 版本：level1 = Unicode 3.0 以內，level2 = 10.0 以內；4.2.0 起不再依賴 `unihan2` gem）。
+
+`CBETA::Gaiji.new(gaiji_path:, sanskrit_path:)` 可改讀外部缺字資料（格式須同 https://github.com/cbeta-org/cbeta_gaiji ），nil 時用 `lib/data/` 內建檔。
 
 ### 檢查工具
 
