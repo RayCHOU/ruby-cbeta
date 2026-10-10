@@ -5,6 +5,15 @@ class CBETA::Gaiji
   # 內建缺字資料所在的資料夾
   DATA_FOLDER = File.expand_path('../data', __dir__)
 
+  # 內建缺字資料的期別（CBETA 釋出版本）
+  DATA_VERSION = '2026.R2'
+
+  # 缺字資料的期別。使用內建資料時為 {DATA_VERSION}；
+  # 使用外部資料時為呼叫者傳入的 data_version，未傳入則為 nil。
+  #
+  # @return [String, nil]
+  attr_reader :data_version
+
   # 載入 CBETA 缺字資料庫
   #
   # 預設使用 gem 內建的缺字資料。也可以傳入外部檔案路徑，自行決定要使用哪一份資料，
@@ -13,6 +22,8 @@ class CBETA::Gaiji
   #
   # @param gaiji_path [String, nil] CB 缺字資料（cbeta_gaiji.json）路徑，nil 表示使用內建資料
   # @param sanskrit_path [String, nil] 悉曇、蘭札資料（cbeta_sanskrit.json）路徑，nil 表示使用內建資料
+  # @param data_version [String, nil] 外部缺字資料的期別，供 {#data_version} 回傳；
+  #   gaiji_path、sanskrit_path 都未指定時忽略此參數，一律為 {DATA_VERSION}
   #
   # @example 使用內建資料
   #   g = CBETA::Gaiji.new
@@ -20,10 +31,13 @@ class CBETA::Gaiji
   # @example 使用外部資料
   #   g = CBETA::Gaiji.new(
   #     gaiji_path: '/path/to/cbeta_gaiji/cbeta_gaiji.json',
-  #     sanskrit_path: '/path/to/cbeta_gaiji/cbeta_sanskrit.json'
+  #     sanskrit_path: '/path/to/cbeta_gaiji/cbeta_sanskrit.json',
+  #     data_version: '2026.R3'
   #   )
-  def initialize(gaiji_path: nil, sanskrit_path: nil)
+  def initialize(gaiji_path: nil, sanskrit_path: nil, data_version: nil)
     @us = CBETA::UnicodeService.new
+    builtin = gaiji_path.nil? && sanskrit_path.nil?
+    @data_version = builtin ? DATA_VERSION : data_version
     gaiji_path    ||= File.join(DATA_FOLDER, 'cbeta_gaiji.json')
     sanskrit_path ||= File.join(DATA_FOLDER, 'cbeta_sanskrit.json')
 

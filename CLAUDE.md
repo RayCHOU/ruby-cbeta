@@ -22,7 +22,7 @@ gem push cbeta-X.Y.Z.gem
 
 測試框架是 minitest。Ruby 版本由 `.tool-versions` 指定（3.4.2），gemspec 要求 >= 3.4.2。
 
-發版流程（參考 git log）：改 `cbeta.gemspec` 的 `s.version` → `gem build` → commit（產出的 `.gem` 檔會留在 repo 根目錄，但 `.gitignore` 有 `*.gem`）。
+發版流程（參考 git log）：改 `cbeta.gemspec` 的 `s.version` → 若更新了 `lib/data/` 的缺字資料，同步改 `CBETA::Gaiji::DATA_VERSION`（`lib/cbeta/gaiji.rb`）→ 在 `CHANGELOG.md` 新增該版條目（每版都要標明「缺字資料」是否更新、是哪一期，以及 `Gaiji#to_s` 輸出是否改變）→ `gem build` → commit（產出的 `.gem` 檔會留在 repo 根目錄，但 `.gitignore` 有 `*.gem`）。
 
 ## 架構
 
@@ -58,7 +58,7 @@ CBETA 的識別字階層：藏經 ID（`T`、`GA`）→ 冊號 vol（`T01`、`GA
 
 缺字呈現的優先序在 `Gaiji#to_s`，預設 `uni_2 → norm_uni_2 → norm_big5_char → uni_char → norm_uni_char → composition`；`uni_2`/`norm_uni_2` 的判斷透過 `CBETA::UnicodeService`（用 Ruby regexp 的 `\p{Age=...}` 判斷 Unicode 版本：level1 = Unicode 3.0 以內，level2 = 10.0 以內；4.2.0 起不再依賴 `unihan2` gem）。
 
-`CBETA::Gaiji.new(gaiji_path:, sanskrit_path:)` 可改讀外部缺字資料（格式須同 https://github.com/cbeta-org/cbeta_gaiji ），nil 時用 `lib/data/` 內建檔。
+`CBETA::Gaiji.new(gaiji_path:, sanskrit_path:)` 可改讀外部缺字資料（格式須同 https://github.com/cbeta-org/cbeta_gaiji ），nil 時用 `lib/data/` 內建檔。`Gaiji#data_version` 回傳缺字資料期別：內建資料時是 `DATA_VERSION`，外部資料時是呼叫者傳入的 `data_version:`。
 
 ### 檢查工具
 

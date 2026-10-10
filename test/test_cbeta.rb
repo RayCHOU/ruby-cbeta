@@ -97,7 +97,17 @@ class GaijiExternalDataTest < Minitest::Test
       assert_equal '[測-試]', g.to_s('CB99999')
       refute g.key?('CB00001') # 外部資料取代內建 CB 缺字
       assert g.key?('SD-A5A9') # 悉曇仍使用內建資料
+      assert_nil g.data_version # 外部資料未指定期別
+
+      g = CBETA::Gaiji.new(gaiji_path: gaiji_path, data_version: 'test')
+      assert_equal 'test', g.data_version
     end
+  end
+
+  def test_builtin_data_version
+    assert_match(/\A\d{4}\.R\d\z/, CBETA::Gaiji::DATA_VERSION)
+    assert_equal CBETA::Gaiji::DATA_VERSION, CBETA::Gaiji.new.data_version
+    assert_equal CBETA::Gaiji::DATA_VERSION, CBETA::Gaiji.new(data_version: 'x').data_version
   end
 end
 
