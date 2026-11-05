@@ -218,7 +218,11 @@ class CBETA::P5aChecker
   
   def e_lb(e)
     return if e['type']=='old'
-    unless e['n'].match(/^[a-z\d]\d{3}[a-z]\d+$/)
+
+    # <lb type="forced"/> 是行內強制換行（例如表格 cell 內），沒有行號
+    return if e['type']=='forced'
+
+    unless e['n'].to_s.match?(/^[a-z\d]\d{3}[a-z]\d+$/)
       error "[E06] lb format error: #{e['n']}"
     end
 

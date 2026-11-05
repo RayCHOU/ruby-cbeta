@@ -6,6 +6,14 @@
 
 3.6.13 以前的版本請參考 git log。
 
+## 4.3.1 (2026-11-05)
+
+缺字資料：未變更（CBETA 2026.R2）；`Gaiji#to_s` 輸出與 4.3.0 相同
+
+- 修正 `P5aChecker` 遇到 `<lb type="forced"/>`（行內強制換行，沒有 `n` 屬性，CBETA 2026-10 起用於 YP30 表格 cell 內）時拋出 `NoMethodError`。`type="forced"` 的 `lb` 不檢查行號格式（E06）與行號重複（E01）。
+- `P5aChecker` 遇到其他缺少 `n` 屬性的 `lb` 時改報 E06，不再拋出例外。
+- 簽章憑證 `certs/zhoubx.pem` 已過期（2026-10-13），以同一把 private key 重新簽發，效期至 2027-11-05。
+
 ## 4.3.0 (2026-10-10)
 
 缺字資料：未變更（CBETA 2026.R2）；`Gaiji#to_s` 輸出與 4.2.0 相同
